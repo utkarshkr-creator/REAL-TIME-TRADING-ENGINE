@@ -1,0 +1,5 @@
+Backend
+**/node_modules/
+db_processor
+.DS_Store
+High_Level_system_design.excalidraw

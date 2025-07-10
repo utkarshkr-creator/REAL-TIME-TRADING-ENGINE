@@ -1,0 +1,20 @@
+{
+  "name": "db",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "npm run build && node dist/index.js",
+    "seed:db": "npm run build && node dist/seed-db.js",
+    "referesh:views": "npm run build && node dist/cronJob.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/pg": "^8.11.6",
+    "pg": "^8.12.0",
+    "redis": "^4.7.0"
+  }
+}
