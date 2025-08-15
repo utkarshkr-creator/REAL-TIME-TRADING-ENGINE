@@ -21,6 +21,12 @@ export type DepthUpdateMessage = {
     e: "depth"
   }
 }
+export type PriceUpdateMessage = {
+  stream: string,
+  data: {
+    p:string
+  }
+}
 
 export type TradeAddedMessage = {
   stream: string,
@@ -34,4 +40,4 @@ export type TradeAddedMessage = {
   }
 }
 
-export type WsMessage = TickerUpdateMessage | DepthUpdateMessage | TradeAddedMessage;
+export type WsMessage = TickerUpdateMessage | DepthUpdateMessage | TradeAddedMessage | PriceUpdateMessage;

@@ -1,19 +1,48 @@
 "use client";
-import { useEffect, useState } from "react";
-import { getBalance } from "../utils/httpClient";
+import { act, useEffect, useState } from "react";
+import { getBalance, getPrice } from "../utils/httpClient";
+import axios from "axios";
+
 const QUOTEASSET="INR";
+const BASE_URL = "http://localhost:3006";
+
 export function SwapUI({ market }: { market: string }) {
   const [amount, setAmount] = useState("");
   const [activeTab, setActiveTab] = useState("buy");
   const [type, setType] = useState("limit");
-  const [balance,setBalance]=useState("0");
+  const [balance,setBalance]=useState<number>(0);
   const [userId,setUserId]=useState("1");
-  const [price,setPrice]=useState("");
-  const [quantity,setQuantity]=useState("0");
+  const [price,setPrice]=useState<number>(0)
+  const [quantity,setQuantity]=useState<number>(0);
   useEffect(() => {
-    getBalance(userId,QUOTEASSET).then((m) => setBalance(m));
+    getBalance(userId,QUOTEASSET).then((m:number) => setBalance(m));
   }, []);
 
+  async function onBuy(){
+    await axios.post(`${BASE_URL}/api/v1/order`, {
+        market: market,
+        price: price,
+        quantity: quantity,
+        side: "buy",
+        userId,
+      });
+  }
+  async function onSell(){
+    await axios.post(`${BASE_URL}/api/v1/order`, {
+        market: market,
+        price: price,
+        quantity: quantity,
+        side: "sell",
+        userId,
+      });
+  }
+  const onClickHandler=async ()=>{
+    if(activeTab==="buy"){
+      await onBuy();
+    }else{
+      await onSell();
+    }
+  }
   return (
     <div>
       <div className="flex flex-col">
@@ -50,7 +79,7 @@ export function SwapUI({ market }: { market: string }) {
                     placeholder="134.38"
                     className="h-12 rounded-lg border-2 border-solid border-baseBorderLight bg-[var(--background)] pr-12 text-right text-2xl leading-9 text-[$text] placeholder-baseTextMedEmphasis ring-0 transition focus:border-accentBlue focus:ring-0"
                     type="text"
-                    onChange={(e)=>setPrice(e.target.value)}
+                    onChange={(e)=>setPrice(Number(e.target.value))}
                   />
                   <div className="flex flex-row absolute right-1 top-1 p-2">
                     <div className="relative">
@@ -70,7 +99,7 @@ export function SwapUI({ market }: { market: string }) {
                   placeholder="0"
                   className="h-12 rounded-lg border-2 border-solid border-baseBorderLight bg-[var(--background)] pr-12 text-right text-2xl leading-9 text-[$text] placeholder-baseTextMedEmphasis ring-0 transition focus:border-accentBlue focus:ring-0"
                   type="text"
-                  onChange={(e)=>setQuantity(e.target.value)}
+                  onChange={(e)=>setQuantity(Number(e.target.value))}
                 />
                 <div className="flex flex-row absolute right-1 top-1 p-2">
                   <div className="relative">
@@ -80,10 +109,10 @@ export function SwapUI({ market }: { market: string }) {
               </div>
               <div className="flex justify-end flex-row">
                 <p className="font-medium pr-2 text-xs text-baseTextMedEmphasis">
-                  ≈ 0.00 USDC
+                  ≈ {quantity*price} INR
                 </p>
               </div>
-              <div className="flex justify-center flex-row mt-2 gap-3">
+              {/* <div className="flex justify-center flex-row mt-2 gap-3">
                 <div className="flex items-center justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3">
                   25%
                 </div>
@@ -96,16 +125,17 @@ export function SwapUI({ market }: { market: string }) {
                 <div className="flex items-center justify-center flex-row rounded-full px-[16px] py-[6px] text-xs cursor-pointer bg-baseBackgroundL2 hover:bg-baseBackgroundL3">
                   Max
                 </div>
-              </div>
+              </div> */}
             </div>
             <button
               type="button"
               className="font-semibold  focus:ring-blue-200 focus:none focus:outline-none text-center h-12 rounded-xl text-base px-4 py-2 my-4 bg-greenPrimaryButtonBackground text-greenPrimaryButtonText active:scale-98"
               data-rac=""
+              onClick={onClickHandler}
             >
-              Buy
+              {activeTab=='buy'?"Buy":"Sell"}
             </button>
-            <div className="flex justify-between flex-row mt-1">
+            {/* <div className="flex justify-between flex-row mt-1">
               <div className="flex flex-row gap-2">
                 <div className="flex items-center">
                   <input
@@ -126,7 +156,7 @@ export function SwapUI({ market }: { market: string }) {
                   <label className="ml-2 text-xs">IOC</label>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

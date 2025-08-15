@@ -4,7 +4,7 @@ export const ON_RAMP = "ON_RAMP";
 export const GET_BALANCE="GET_BALANCE";
 export const GET_DEPTH = "GET_DEPTH";
 export const GET_OPEN_ORDERS = "GET_OPEN_ORDERS";
-
+export const GET_PRICE="GET_PRICE";
 
 export type MessageFromApi = {
   type: typeof CREATE_ORDER,
@@ -44,5 +44,10 @@ export type MessageFromApi = {
   data: {
     userId: string,
     market: string
+  }
+} | {
+  type: typeof GET_PRICE,
+  data: {
+    quoteAsset: string,
   }
 }

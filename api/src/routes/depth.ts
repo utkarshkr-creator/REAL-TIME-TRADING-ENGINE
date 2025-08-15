@@ -28,3 +28,16 @@ depthRouter.get('/balance', async (req, res) => {
     })
     res.json(response.payload);
 })
+
+depthRouter.get('/price', async (req, res) => {
+    const userId = req.query.userId as string;
+    const quoteAsset = req.query.quoteAsset as string;
+    const response = await RedisManager.getInstance().sendAndAwait({
+        type: GET_BALANCE,
+        data: {
+            userId,
+            quoteAsset
+        }
+    })
+    res.json(response.payload);
+})

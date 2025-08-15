@@ -14,6 +14,7 @@ class Engine {
     constructor() {
         this.orderbooks = [];
         this.balances = new Map();
+        this.price = new Map();
         let snapshot = null;
         try {
             //@ts-ignore
@@ -28,10 +29,12 @@ class Engine {
             const snapshotTemp = JSON.parse(snapshot.toString());
             this.orderbooks = snapshotTemp.orderbooks.map((o) => new Orderbook_1.Orderbook(o.baseAsset, o.bids, o.asks, o.lastTradeId, o.currentPrice));
             this.balances = new Map(snapshotTemp.balances);
+            this.price = new Map(snapshotTemp.orderbooks.map((o) => [o.baseAsset, o.currentPrice]));
         }
         else {
-            this.orderbooks = [new Orderbook_1.Orderbook('TATA', [], [], 0, 0)];
+            this.orderbooks = [new Orderbook_1.Orderbook('TATA', [], [], 0, 138)];
             this.setBaseBalances();
+            this.price = new Map([['TATA', 138]]);
         }
         setInterval(() => {
             this.saveSnapshot();
@@ -51,6 +54,10 @@ class Engine {
         const userBalance = this.balances.get(userId);
         let balance = userBalance ? userBalance[quoteAsset].available : 0;
         return balance.toString();
+    }
+    getPrice(asset) {
+        const price = this.price.get(asset);
+        return price !== null && price !== void 0 ? price : 0;
     }
     createOrder(market, price, quantity, side, userId) {
         const orderbook = this.orderbooks.find(x => x.ticker() === market);
@@ -73,6 +80,7 @@ class Engine {
         this.createDbTrades(fills, market, userId);
         this.updateDbOrders(order, executedQty, fills, market);
         this.publishWsDepthUpdates(fills, price, side, market);
+        this.publishWsPriceUpdates(quoteAsset, price);
         this.publishWsTrades(fills, userId, market);
         return { executedQty, fills, orderId: order.orderId };
     }
@@ -155,6 +163,14 @@ class Engine {
             });
         }
     }
+    publishWsPriceUpdates(quoteAsset, price) {
+        RedisManager_1.RedisManager.getInstance().publishMessage(`price@${quoteAsset}`, {
+            stream: `price@${quoteAsset}`,
+            data: {
+                p: price
+            }
+        });
+    }
     process({ message, clientId }) {
         switch (message.type) {
             case fromApi_1.GET_BALANCE:
@@ -169,6 +185,20 @@ class Engine {
                 }
                 catch (error) {
                     console.log("Error In getting user Balance", error);
+                }
+                break;
+            case fromApi_1.GET_PRICE:
+                try {
+                    const price = this.getPrice(message.data.quoteAsset);
+                    RedisManager_1.RedisManager.getInstance().sendToApi(clientId, {
+                        type: "GET_PRICE",
+                        payload: {
+                            price: price.toString(),
+                        }
+                    });
+                }
+                catch (error) {
+                    console.log("Error In getting quoteAsset price", error);
                 }
                 break;
             case fromApi_1.CREATE_ORDER:

@@ -8,7 +8,7 @@ export const MarketBar = ({ market }: { market: string }) => {
   const [ticker, setTicker] = useState<Ticker | null>(null);
 
   useEffect(() => {
-    //getTicker(market).then(setTicker);
+    getTicker(market).then(setTicker);
     SignalingManager.getInstance().registerCallback(
       "ticker",
       (data: Partial<Ticker>) =>
@@ -54,10 +54,10 @@ export const MarketBar = ({ market }: { market: string }) => {
               <p
                 className={`font-medium tabular-nums text-greenText text-md text-green-500`}
               >
-                ${ticker?.lastPrice}
+                ${ticker?.lastPrice || 0}
               </p>
               <p className="font-medium text-sm text-sm tabular-nums">
-                ${ticker?.lastPrice}
+                ${ticker?.lastPrice || 0}
               </p>
             </div>
             <div className="flex flex-col">

@@ -3,7 +3,7 @@ import { Order } from "../trade/Orderbook";
 export const CREATE_ORDER = "CREATE_ORDER";
 export const GET_BALANCE= "GET_BALANCE";
 export const CANCEL_ORDER = "CANCEL_ORDER";
-
+export const GET_PRICE="GET_PRICE";
 export const ON_RAMP = "ON_RAMP";
 export const GET_DEPTH = "GET_DEPTH";
 
@@ -39,4 +39,9 @@ export type MessageToApi = {
 } | {
   type: "OPEN_ORDERS",
   payload: Order[]
+} |{
+  type: "GET_PRICE",
+  payload : {
+    price:string
+  }
 }
