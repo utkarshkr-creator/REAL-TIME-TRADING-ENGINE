@@ -74,15 +74,71 @@ Even if the engine crashes mid-trade, no data is lost because the transaction wa
 ## High-Level Design of System
 <img width="4556" height="1951" alt="Exchange" src="https://github.com/user-attachments/assets/50c47542-2470-4839-a30c-e503e1bfb365" />
 
-## Steps to start service
-- docker ```docker compose up```
-- db ```npm run referesh:views``` and ```npm run dev```
-- api ```npm run dev```
-- exchange_Manager ```npm run dev ```
-- ws ```npm run dev ```
-- frontend ```npm run dev```
+## Repository Overview
+- `docker/` — Docker Compose for TimescaleDB (Postgres) and Redis used by the stack.
+- `db/` — schema management, queue processor, and materialized view refresh loop.
+- `db_processor/` — experimental Prisma-based service for richer database access (WIP, not required for local runs).
+- `api/` — Express gateway exposing REST endpoints backed by Redis/TimescaleDB.
+- `exchange_Manager/` — core matching and risk engine reading commands from Redis queues.
+- `ws/` — WebSocket fan-out that streams depth/price updates to clients.
+- `frontend/` — Next.js trading interface consuming the API/WebSocket feeds.
+- `mm/` — market-maker simulator that publishes orders for local testing.
+- `Backend/` — legacy HTTP prototype retained for reference; not active in the current flow.
 
-Note: The Market Maker service is available as mm.
+## Prerequisites
+- Node.js 18+ with npm.
+- Docker and Docker Compose (or compatible) to provision TimescaleDB + Redis.
+- TimescaleDB extension available on the Postgres instance (compose image includes it).
+- Redis 7.x reachable at `localhost:6379` (matches the compose default).
+
+## First-Time Setup
+1. Install dependencies for each workspace:
+   ```bash
+   cd api && npm install && cd ..
+   cd db && npm install && cd ..
+   cd exchange_Manager && npm install && cd ..
+   cd ws && npm install && cd ..
+   cd frontend && npm install && cd ..
+   cd mm && npm install && cd ..
+   ```
+2. Start infrastructure (TimescaleDB + Redis):
+   ```bash
+   cd docker
+   docker compose up -d
+   cd ..
+   ```
+3. (First run) Enable the TimescaleDB extension once:
+   ```bash
+   PGPASSWORD=your_password psql -h localhost -U your_user -d my_database -c "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+   ```
+4. Initialize database objects (creates hypertables + materialized views):
+   ```bash
+   cd db
+   npm run seed:db
+   cd ..
+   ```
+
+## Environment & Configuration
+- Default Postgres credentials match `docker/docker-compose.yml` (`your_user/your_password` against `my_database`). Update the `pg.Client` constructors in `db/src/*.ts` and `api/src/routes/Kline.ts` if you run against another instance.
+- Redis clients default to `redis://localhost:6379`. Override by passing a connection string to `createClient()` if you deploy elsewhere.
+- The matching engine enables snapshot replay through the `WITH_SNAPSHOT` flag in `exchange_Manager/package.json`. Set it to `false` before `npm run dev` for a clean start.
+- Frontend and simulator call `http://localhost:3006`; adjust `frontend/src/app/utils/httpClient.ts` and `mm/src/index.ts` if you change the API port.
+- WebSocket consumers expect `ws://localhost:8080`; update `frontend/src/app/utils/SignalingManager.ts` when hosting the WS server on a different URL.
+
+## Running the Stack
+- `cd db && npm run dev` starts the Redis queue consumer that writes engine events to TimescaleDB.
+- `cd db && npm run referesh:views` keeps materialized views current (leave this running in its own terminal).
+- `cd api && npm run dev` starts the REST API after compiling TypeScript.
+- `cd exchange_Manager && npm run dev` launches the core trade engine.
+- `cd ws && npm run dev` serves WebSocket updates for the UI.
+- `cd frontend && npm run dev` runs the Next.js client at `http://localhost:3000`.
+- Optionally `cd mm && npm run dev` to start the market-maker simulator that drives sample order flow.
+
+## Testing & Verification
+- `cd api && npm run test` executes API unit tests with Vitest.
+- `cd exchange_Manager && npm run test` runs engine tests (also via Vitest).
+- `cd frontend && npm run lint` checks the UI codebase.
+- After seeding, verify TimescaleDB objects with `psql -d my_database -c "\dt"` and confirm Redis connectivity via `redis-cli PING`.
 
 ## Image
 <img width="1767" height="960" alt="Screenshot 2025-08-15 at 3 02 04 PM" src="https://github.com/user-attachments/assets/f6cde817-6287-4894-a217-e58ddfd7d5bc" />
