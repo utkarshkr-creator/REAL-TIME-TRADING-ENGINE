@@ -34,7 +34,16 @@ class Orderbook {
                     fills
                 };
             }
-            this.bids.push(order);
+            console.log("order added to bids", order);
+            // Insert in sorted order (Descending price)
+            let index = this.bids.length;
+            for (let i = 0; i < this.bids.length; i++) {
+                if (this.bids[i].price < order.price) {
+                    index = i;
+                    break;
+                }
+            }
+            this.bids.splice(index, 0, order);
             return {
                 executedQty,
                 fills
@@ -49,7 +58,16 @@ class Orderbook {
                     fills
                 };
             }
-            this.asks.push(order);
+            console.log("order added to asks", order);
+            // Insert in sorted order (Ascending price)
+            let index = this.asks.length;
+            for (let i = 0; i < this.asks.length; i++) {
+                if (this.asks[i].price > order.price) {
+                    index = i;
+                    break;
+                }
+            }
+            this.asks.splice(index, 0, order);
             return {
                 executedQty,
                 fills

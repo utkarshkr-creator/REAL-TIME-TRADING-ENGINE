@@ -28,7 +28,8 @@ export class ChartManager {
         layout: { background: string; color: string }
     ) {
         const chart = createLightWeightChart(ref, {
-            autoSize: true,
+            width: ref.clientWidth,
+            height: ref.clientHeight,
             overlayPriceScales: {
                 ticksVisible: true,
                 borderVisible: true,
@@ -56,9 +57,19 @@ export class ChartManager {
                 },
                 textColor: "white",
             },
+            timeScale: {
+                timeVisible: true,
+                secondsVisible: true,
+            }
         });
         this.chart = chart;
-        this.candleSeries = chart.addCandlestickSeries();
+        this.candleSeries = chart.addCandlestickSeries({
+            upColor: '#26a69a',
+            downColor: '#ef5350',
+            borderVisible: false,
+            wickUpColor: '#26a69a',
+            wickDownColor: '#ef5350',
+        });
         // console.log("initialData", initialData);
         this.candleSeries.setData(
             initialData.map((data) => ({
@@ -83,6 +94,9 @@ export class ChartManager {
         if (updatedPrice.newCandleInitiated) {
             this.lastUpdateTime = updatedPrice.time;
         }
+    }
+    public resize(width: number, height: number) {
+        this.chart.resize(width, height);
     }
     public destroy() {
         this.chart.remove();

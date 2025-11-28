@@ -18,9 +18,11 @@ export const Markets = () => {
         <div className="flex flex-col w-full rounded-lg bg-baseBackgroundL1 px-5 py-3">
           <table className="w-full table-auto">
             <MarketHeader />
-            {tickers?.map((m) => (
-              <MarketRow market={m} key={m.symbol} />
-            ))}
+            <tbody>
+              {tickers?.map((m) => (
+                <MarketRow market={m} key={m.symbol} />
+              ))}
+            </tbody>
           </table>
         </div>
       </div>
@@ -28,7 +30,7 @@ export const Markets = () => {
   );
 };
 
-function MarketRow({ market, key }: { market: Ticker; key: string }) {
+function MarketRow({ market }: { market: Ticker }) {
   const router = useRouter();
   return (
     <tr
@@ -37,7 +39,7 @@ function MarketRow({ market, key }: { market: Ticker; key: string }) {
     >
       <td className="px-1 py-3">
         <div className="flex shrink">
-          <div className="flex items-center undefined">
+          <div className="flex items-center">
             <div
               className="relative flex-none overflow-hidden rounded-full border border-baseBorderMed"
               style={{ width: "40px", height: "40px" }}

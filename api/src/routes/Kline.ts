@@ -22,10 +22,23 @@ klineRouter.get("/", async (req, res) => {
       query = `SELECT * FROM klines_1m WHERE bucket >= $1 AND bucket <= $2`;
       break;
     case '1h':
-      query = `SELECT * FROM klines_1m WHERE  bucket >= $1 AND bucket <= $2`;
+      query = `SELECT * FROM klines_1h WHERE  bucket >= $1 AND bucket <= $2`;
       break;
     case '1w':
       query = `SELECT * FROM klines_1w WHERE bucket >= $1 AND bucket <= $2`;
+      break;
+    case '1d':
+      query = `SELECT 
+          time_bucket('1 day', time) AS bucket,
+          first(price, time) AS open,
+          max(price) AS high,
+          min(price) AS low,
+          last(price, time) AS close,
+          sum(volume) AS volume,
+          currency_code
+        FROM tata_prices
+        WHERE time >= $1 AND time <= $2
+        GROUP BY bucket, currency_code`;
       break;
     default:
       return res.status(400).send('Invalid interval');
@@ -35,7 +48,7 @@ klineRouter.get("/", async (req, res) => {
     //@ts-ignore
     const result = await pgClient.query(query, [new Date(startTime * 1000 as string), new Date(endTime * 1000 as string)]);
     console.log("result in api", result.rows);
-    
+
     res.json(result.rows.map(x => ({
       close: x.close,
       end: x.bucket,

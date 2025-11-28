@@ -10,37 +10,35 @@ export const MarketBar = ({ market }: { market: string }) => {
   useEffect(() => {
     getTicker(market).then(setTicker);
     SignalingManager.getInstance().registerCallback(
-      "ticker",
+      `ticker@${market}`,
       (data: Partial<Ticker>) =>
-        setTicker((prevTicker) => ({
-          firstPrice: data?.firstPrice ?? prevTicker?.firstPrice ?? "",
-          high: data?.high ?? prevTicker?.high ?? "",
-          lastPrice: data?.lastPrice ?? prevTicker?.lastPrice ?? "",
-          low: data?.low ?? prevTicker?.low ?? "",
-          priceChange: data?.priceChange ?? prevTicker?.priceChange ?? "",
-          priceChangePercent:
-            data?.priceChangePercent ?? prevTicker?.priceChangePercent ?? "",
-          quoteVolume: data?.quoteVolume ?? prevTicker?.quoteVolume ?? "",
-          symbol: data?.symbol ?? prevTicker?.symbol ?? "",
-          trades: data?.trades ?? prevTicker?.trades ?? "",
-          volume: data?.volume ?? prevTicker?.volume ?? "",
-        })),
+        setTicker((prevTicker) => {
+          const firstPrice = data?.firstPrice ?? prevTicker?.firstPrice ?? "";
+          const lastPrice = data?.lastPrice ?? prevTicker?.lastPrice ?? "";
+          const priceChange = (Number(lastPrice) - Number(firstPrice)).toFixed(2);
+          const priceChangePercent = ((Number(priceChange) / Number(firstPrice)) * 100).toFixed(2);
+
+          return {
+            firstPrice,
+            high: data?.high ?? prevTicker?.high ?? "",
+            lastPrice,
+            low: data?.low ?? prevTicker?.low ?? "",
+            priceChange,
+            priceChangePercent,
+            quoteVolume: data?.quoteVolume ?? prevTicker?.quoteVolume ?? "",
+            symbol: data?.symbol ?? prevTicker?.symbol ?? "",
+            trades: data?.trades ?? prevTicker?.trades ?? "",
+            volume: data?.volume ?? prevTicker?.volume ?? "",
+          };
+        }),
       `TICKER-${market}`
     );
-    SignalingManager.getInstance().sendMessage({
-      method: "SUBSCRIBE",
-      params: [`ticker@${market}`],
-    });
 
     return () => {
       SignalingManager.getInstance().deRegisterCallback(
-        "ticker",
+        `ticker@${market}`,
         `TICKER-${market}`
       );
-      SignalingManager.getInstance().sendMessage({
-        method: "UNSUBSCRIBE",
-        params: [`ticker@${market}`],
-      });
     };
   }, [market]);
 

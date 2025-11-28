@@ -1,6 +1,5 @@
 export const AskTable = ({ asks }: { asks: [string, string][] }) => {
   let currentTotal = 0;
-  // console.log("asked", asks);
   const relevantAsks = asks.slice(0, 15);
   relevantAsks.reverse();
   const asksWithTotal: [string, string, number][] = relevantAsks.map(
@@ -11,6 +10,7 @@ export const AskTable = ({ asks }: { asks: [string, string][] }) => {
     0
   );
   asksWithTotal.reverse();
+  
   return (
     <div>
       {asksWithTotal.map(([price, quantity, total]) => (
@@ -25,6 +25,7 @@ export const AskTable = ({ asks }: { asks: [string, string][] }) => {
     </div>
   );
 };
+
 function Ask({
   price,
   quantity,
@@ -36,7 +37,6 @@ function Ask({
   total: number;
   maxTotal: number;
 }) {
-  // console.log(price, quantity, total, "here");
   return (
     <div
       style={{
@@ -46,22 +46,23 @@ function Ask({
         backgroundColor: "transparent",
         overflow: "hidden",
       }}
+      className="hover:bg-slate-800/30 cursor-pointer"
     >
       <div
         style={{
           position: "absolute",
           top: 0,
-          left: 0,
+          right: 0,
           width: `${(100 * total) / maxTotal}%`,
           height: "100%",
-          background: "rgba(228, 75, 68, 0.325)",
+          background: "linear-gradient(to left, rgba(228, 75, 68, 0.25), rgba(228, 75, 68, 0.05))",
           transition: "width 0.3s ease-in-out",
         }}
       ></div>
-      <div className="flex justify-between text-xs w-full">
-        <div>{price}</div>
-        <div>{quantity}</div>
-        <div>{total?.toFixed(2)}</div>
+      <div className="flex justify-between text-xs w-full px-3 py-1 relative z-10">
+        <div className="text-red-500 font-medium">{Number(price).toFixed(2)}</div>
+        <div className="text-slate-300">{Number(quantity).toFixed(2)}</div>
+        <div className="text-slate-400">{total?.toFixed(2)}</div>
       </div>
     </div>
   );

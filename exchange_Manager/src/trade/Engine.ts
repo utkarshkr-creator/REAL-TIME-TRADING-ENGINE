@@ -2,7 +2,7 @@ import fs from "fs";
 import { Order, Orderbook, Fill } from './Orderbook'
 import { RedisManager } from '../RedisManager';
 import { ORDER_UPDATE, TRADE_ADDED } from '../Types';
-import { GET_DEPTH, GET_OPEN_ORDERS,GET_BALANCE, MessageFromApi, ON_RAMP,CANCEL_ORDER ,CREATE_ORDER,GET_PRICE} from '../Types/fromApi';
+import { GET_DEPTH, GET_OPEN_ORDERS, GET_BALANCE, MessageFromApi, ON_RAMP, CANCEL_ORDER, CREATE_ORDER, GET_PRICE } from '../Types/fromApi';
 export const BASE_CURRENCY = "INR";
 
 interface UserBalance {
@@ -15,11 +15,10 @@ interface UserBalance {
 export class Engine {
   private orderbooks: Orderbook[] = [];
   private balances: Map<string, UserBalance> = new Map();
-  private price:Map<string,number>=new Map();
+  private price: Map<string, number> = new Map();
   constructor() {
     let snapshot: any = null;
     try {
-      //@ts-ignore
       if (process.env.WITH_SNAPSHOT) {
         snapshot = fs.readFileSync('./snapshot.json');
       }
@@ -52,14 +51,14 @@ export class Engine {
   addOrderbook(orderbook: Orderbook) {
     this.orderbooks.push(orderbook);
   }
-  getBalance(userId:string,quoteAsset:string):string{
-    const userBalance:UserBalance | undefined = this.balances.get(userId);
-    let balance=userBalance?userBalance[quoteAsset].available:0;
+  getBalance(userId: string, quoteAsset: string): string {
+    const userBalance: UserBalance | undefined = this.balances.get(userId);
+    let balance = userBalance ? userBalance[quoteAsset].available : 0;
     return balance.toString();
   }
-  getPrice(asset:string):number{
-    const price=this.price.get(asset);
-    return price??0;
+  getPrice(asset: string): number {
+    const price = this.price.get(asset);
+    return price ?? 0;
   }
 
   createOrder(market: string, price: string, quantity: string, side: "buy" | "sell", userId: string) {
@@ -84,7 +83,9 @@ export class Engine {
     this.createDbTrades(fills, market, userId);
     this.updateDbOrders(order, executedQty, fills, market);
     this.publishWsDepthUpdates(fills, price, side, market);
-    this.publishWsPriceUpdates(quoteAsset,price);
+    if (fills.length > 0) {
+      this.publishWsPriceUpdates(market, fills[fills.length - 1].price);
+    }
     this.publishWsTrades(fills, userId, market);
     return { executedQty, fills, orderId: order.orderId };
   }
@@ -146,24 +147,33 @@ export class Engine {
     if (!orderbook) return;
     const depth = orderbook.getDepth();
     if (side === "buy") {
-      const updateAsks = depth?.asks.filter(x => fills.map(f => f.price).includes(x[0].toString()));
-      const updateBids = depth?.bids.find(x => x[0] === price);
-      // console.log("Depth called",market);
+      const updatedAsks = fills.map(f => {
+        const p = f.price;
+        const quantity = depth.asks.find(x => x[0] === p)?.[1] || "0";
+        return [p, quantity] as [string, string];
+      });
+      const updatedBid = depth.bids.find(x => x[0] === String(Number(price)));
+
       RedisManager.getInstance().publishMessage(`depth@${market}`, {
         stream: `depth@${market}`,
         data: {
-          a: updateAsks,
-          b: updateBids ? [updateBids] : [],
+          a: updatedAsks,
+          b: updatedBid ? [updatedBid] : [],
           e: "depth"
         }
       });
     } else {
-      const updatedBids = depth?.bids.filter(x => fills.map(f => f.price).includes(x[0].toString()));
-      const updateAsk = depth?.asks.find(x => x[0] === price);
+      const updatedBids = fills.map(f => {
+        const p = f.price;
+        const quantity = depth.bids.find(x => x[0] === p)?.[1] || "0";
+        return [p, quantity] as [string, string];
+      });
+      const updatedAsk = depth.asks.find(x => x[0] === String(Number(price)));
+
       RedisManager.getInstance().publishMessage(`depth@${market}`, {
         stream: `depth@${market}`,
         data: {
-          a: updateAsk ? [updateAsk] : [],
+          a: updatedAsk ? [updatedAsk] : [],
           b: updatedBids,
           e: "depth"
         }
@@ -171,46 +181,51 @@ export class Engine {
     }
 
   }
-  publishWsPriceUpdates(quoteAsset:string, price: string) {
-    RedisManager.getInstance().publishMessage(`price@${quoteAsset}`, {
-      stream: `price@${quoteAsset}`,
+  publishWsPriceUpdates(market: string, price: string) {
+    RedisManager.getInstance().publishMessage(`ticker@${market}`, {
+      stream: `ticker@${market}`,
       data: {
-        p:price
+        e: "ticker",
+        c: price,
+        s: market,
+        id: Math.random()
       }
     });
   }
 
   process({ message, clientId }: { message: MessageFromApi, clientId: string }) {
+    console.log("engine process message", message.type);
     switch (message.type) {
       case GET_BALANCE:
         try {
-          const balance=this.getBalance(message.data.userId,message.data.quoteAsset);
-          RedisManager.getInstance().sendToApi(clientId,{
+          const balance = this.getBalance(message.data.userId, message.data.quoteAsset);
+          RedisManager.getInstance().sendToApi(clientId, {
             type: "GET_BALANCE",
-            payload:{
-              userBalance:balance,
+            payload: {
+              userBalance: balance,
             }
           });
         } catch (error) {
-          console.log("Error In getting user Balance",error);
+          console.log("Error In getting user Balance", error);
         }
         break;
       case GET_PRICE:
         try {
-          const price=this.getPrice(message.data.quoteAsset);
-          RedisManager.getInstance().sendToApi(clientId,{
+          const price = this.getPrice(message.data.quoteAsset);
+          RedisManager.getInstance().sendToApi(clientId, {
             type: "GET_PRICE",
-            payload:{
-              price:price.toString(),
+            payload: {
+              price: price.toString(),
             }
           });
         } catch (error) {
-          console.log("Error In getting quoteAsset price",error);
+          console.log("Error In getting quoteAsset price", error);
         }
         break;
       case CREATE_ORDER:
         try {
           const { executedQty, fills, orderId } = this.createOrder(message.data.market, message.data.price, message.data.quantity, message.data.side, message.data.userId);
+          console.log("In create order", executedQty, fills, orderId);
           RedisManager.getInstance().sendToApi(clientId, {
             type: "ORDER_PLACED",
             payload: {

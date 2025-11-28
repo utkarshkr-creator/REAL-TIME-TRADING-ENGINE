@@ -36,3 +36,15 @@ exports.depthRouter.get('/balance', (req, res) => __awaiter(void 0, void 0, void
     });
     res.json(response.payload);
 }));
+exports.depthRouter.get('/price', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.query.userId;
+    const quoteAsset = req.query.quoteAsset;
+    const response = yield RedisManager_1.RedisManager.getInstance().sendAndAwait({
+        type: types_1.GET_BALANCE,
+        data: {
+            userId,
+            quoteAsset
+        }
+    });
+    res.json(response.payload);
+}));

@@ -17,7 +17,6 @@ class Engine {
         this.price = new Map();
         let snapshot = null;
         try {
-            //@ts-ignore
             if (process.env.WITH_SNAPSHOT) {
                 snapshot = fs_1.default.readFileSync('./snapshot.json');
             }
@@ -80,7 +79,9 @@ class Engine {
         this.createDbTrades(fills, market, userId);
         this.updateDbOrders(order, executedQty, fills, market);
         this.publishWsDepthUpdates(fills, price, side, market);
-        this.publishWsPriceUpdates(quoteAsset, price);
+        if (fills.length > 0) {
+            this.publishWsPriceUpdates(market, fills[fills.length - 1].price);
+        }
         this.publishWsTrades(fills, userId, market);
         return { executedQty, fills, orderId: order.orderId };
     }
@@ -138,40 +139,53 @@ class Engine {
             return;
         const depth = orderbook.getDepth();
         if (side === "buy") {
-            const updateAsks = depth === null || depth === void 0 ? void 0 : depth.asks.filter(x => fills.map(f => f.price).includes(x[0].toString()));
-            const updateBids = depth === null || depth === void 0 ? void 0 : depth.bids.find(x => x[0] === price);
-            // console.log("Depth called",market);
+            const updatedAsks = fills.map(f => {
+                var _a;
+                const p = f.price;
+                const quantity = ((_a = depth.asks.find(x => x[0] === p)) === null || _a === void 0 ? void 0 : _a[1]) || "0";
+                return [p, quantity];
+            });
+            const updatedBid = depth.bids.find(x => x[0] === String(Number(price)));
             RedisManager_1.RedisManager.getInstance().publishMessage(`depth@${market}`, {
                 stream: `depth@${market}`,
                 data: {
-                    a: updateAsks,
-                    b: updateBids ? [updateBids] : [],
+                    a: updatedAsks,
+                    b: updatedBid ? [updatedBid] : [],
                     e: "depth"
                 }
             });
         }
         else {
-            const updatedBids = depth === null || depth === void 0 ? void 0 : depth.bids.filter(x => fills.map(f => f.price).includes(x[0].toString()));
-            const updateAsk = depth === null || depth === void 0 ? void 0 : depth.asks.find(x => x[0] === price);
+            const updatedBids = fills.map(f => {
+                var _a;
+                const p = f.price;
+                const quantity = ((_a = depth.bids.find(x => x[0] === p)) === null || _a === void 0 ? void 0 : _a[1]) || "0";
+                return [p, quantity];
+            });
+            const updatedAsk = depth.asks.find(x => x[0] === String(Number(price)));
             RedisManager_1.RedisManager.getInstance().publishMessage(`depth@${market}`, {
                 stream: `depth@${market}`,
                 data: {
-                    a: updateAsk ? [updateAsk] : [],
+                    a: updatedAsk ? [updatedAsk] : [],
                     b: updatedBids,
                     e: "depth"
                 }
             });
         }
     }
-    publishWsPriceUpdates(quoteAsset, price) {
-        RedisManager_1.RedisManager.getInstance().publishMessage(`price@${quoteAsset}`, {
-            stream: `price@${quoteAsset}`,
+    publishWsPriceUpdates(market, price) {
+        RedisManager_1.RedisManager.getInstance().publishMessage(`ticker@${market}`, {
+            stream: `ticker@${market}`,
             data: {
-                p: price
+                e: "ticker",
+                c: price,
+                s: market,
+                id: Math.random()
             }
         });
     }
     process({ message, clientId }) {
+        console.log("engine process message", message.type);
         switch (message.type) {
             case fromApi_1.GET_BALANCE:
                 try {
@@ -204,6 +218,7 @@ class Engine {
             case fromApi_1.CREATE_ORDER:
                 try {
                     const { executedQty, fills, orderId } = this.createOrder(message.data.market, message.data.price, message.data.quantity, message.data.side, message.data.userId);
+                    console.log("In create order", executedQty, fills, orderId);
                     RedisManager_1.RedisManager.getInstance().sendToApi(clientId, {
                         type: "ORDER_PLACED",
                         payload: {

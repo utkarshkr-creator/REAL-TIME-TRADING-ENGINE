@@ -7,7 +7,7 @@ export class SignalingManager {
   private ws: WebSocket;
   private static instance: SignalingManager;
   private bufferedMessages: any[] = [];
-  private callbacks: any = {};
+  private callbacks: { [key: string]: { callback: (data: any) => void, id: string }[] } = {};
   private id: number;
   private initialized: boolean = false;
 
@@ -36,8 +36,9 @@ export class SignalingManager {
     this.ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
       const type = message.data.e;
-      if (this.callbacks[type]) {
-        this.callbacks[type].forEach(({ callback }) => {
+      // console.log("message", message);
+      if (this.callbacks[message.stream]) {
+        this.callbacks[message.stream].forEach(({ callback }) => {
           if (type === "ticker") {
             const newTicker: Partial<Ticker> = {
               lastPrice: message.data.c,
@@ -46,25 +47,26 @@ export class SignalingManager {
               volume: message.data.v,
               quoteVolume: message.data.V,
               symbol: message.data.s,
+              priceChange: message.data.P,
+              priceChangePercent: message.data.p,
+              firstPrice: message.data.o,
+              trades: message.data.n,
             }
-            // console.log(newTicker);
             callback(newTicker);
           }
           if (type === "depth") {
-            // const newTicker: Partial<Ticker> = {
-            //     lastPrice: message.data.c,
-            //     high: message.data.h,
-            //     low: message.data.l,
-            //     volume: message.data.v,
-            //     quoteVolume: message.data.V,
-            //     symbol: message.data.s,
-            // }
-            // console.log(newTicker);
-            // callback(newTicker);
             const updatedBids = message.data.b;
             const updatedAsks = message.data.a;
-            // console.log("callback", callback);
             callback({ bids: updatedBids, asks: updatedAsks });
+          }
+          if (type === "trade") {
+            const newTrade = {
+              price: message.data.p,
+              quantity: message.data.q,
+              timestamp: message.data.t,
+              isBuyerMaker: message.data.m,
+            }
+            callback(newTrade);
           }
         });
       }
@@ -83,18 +85,33 @@ export class SignalingManager {
     this.ws.send(JSON.stringify(messageToSend));
   }
 
-  async registerCallback(type: string, callback: any, id: string) {
-    this.callbacks[type] = this.callbacks[type] || [];
-    this.callbacks[type].push({ callback, id });
-    // console.log("after registerCallback", this.callbacks[type].id);
-    // "ticker" => callback
+  async registerCallback(channel: string, callback: any, id: string) {
+    this.callbacks[channel] = this.callbacks[channel] || [];
+    this.callbacks[channel].push({ callback, id });
+
+    if (this.callbacks[channel].length === 1) {
+      // First listener, send subscribe
+      this.sendMessage({
+        method: "SUBSCRIBE",
+        params: [channel]
+      });
+    }
   }
 
-  async deRegisterCallback(type: string, id: string) {
-    if (this.callbacks[type]) {
-      const index = this.callbacks[type].findIndex(callback => callback.id === id);
+  async deRegisterCallback(channel: string, id: string) {
+    if (this.callbacks[channel]) {
+      const index = this.callbacks[channel].findIndex((callback) => callback.id === id);
       if (index !== -1) {
-        this.callbacks[type].splice(index, 1);
+        this.callbacks[channel].splice(index, 1);
+      }
+
+      if (this.callbacks[channel].length === 0) {
+        // Last listener removed, send unsubscribe
+        this.sendMessage({
+          method: "UNSUBSCRIBE",
+          params: [channel]
+        });
+        delete this.callbacks[channel];
       }
     }
   }
