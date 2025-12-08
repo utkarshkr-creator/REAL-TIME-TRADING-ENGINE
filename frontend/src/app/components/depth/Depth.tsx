@@ -8,6 +8,7 @@ import {
 } from "../../utils/httpClient";
 import { BidTable } from "./BidTable";
 import { AskTable } from "./AskTable";
+import { Trades } from "./Trades";
 import { SignalingManager } from "../../utils/SignalingManager";
 
 export function Depth({ market }: { market: string }) {
@@ -74,7 +75,11 @@ export function Depth({ market }: { market: string }) {
     });
 
     getTicker(market).then((t) => setPrice(t.lastPrice));
-    getTrades(market).then((t) => setPrice(t[0].price));
+    getTrades(market).then((t) => {
+      if (t && t.length > 0) {
+        setPrice(t[0].price);
+      }
+    });
 
     return () => {
       SignalingManager.getInstance().deRegisterCallback(
@@ -178,9 +183,7 @@ export function Depth({ market }: { market: string }) {
           </div>
         </>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-slate-500">
-          Trades view coming soon
-        </div>
+        <Trades market={market} />
       )}
     </div>
   );

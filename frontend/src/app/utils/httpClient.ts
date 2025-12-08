@@ -23,7 +23,7 @@ export async function getDepth(market: string): Promise<Depth> {
 
 export async function getTrades(market: string): Promise<Trade[]> {
   const response = await axios.get(`${BASE_URL}/trades?symbol=${market}`);
-  return response.data.data;
+  return response.data;
 }
 
 export async function getKlines(market: string, interval: string, startTime: number, endTime: number): Promise<KLine[]> {
@@ -32,14 +32,14 @@ export async function getKlines(market: string, interval: string, startTime: num
   return data.sort((x, y) => (Number(x.end) < Number(y.end) ? -1 : 1));
 }
 
-export async function getBalance(userId:string,quoteAsset:string){
-  const response=await axios.get(`${BASE_URL}/depth/balance?userId=${userId}&quoteAsset=${quoteAsset}`);
-  const data=response.data.userBalance;
+export async function getBalance(userId: string, quoteAsset: string) {
+  const response = await axios.get(`${BASE_URL}/depth/balance?userId=${userId}&quoteAsset=${quoteAsset}`);
+  const data = response.data.userBalance;
   return Number(data);
 }
 
-export async function getPrice(userId:string,quoteAsset:string){
-  const response=await axios.get(`${BASE_URL}/depth/price?quoteAsset=${quoteAsset}`);
-  const data=response.data.price;
+export async function getPrice(userId: string, quoteAsset: string) {
+  const response = await axios.get(`${BASE_URL}/depth/price?quoteAsset=${quoteAsset}`);
+  const data = response.data.price;
   return Number(data);
 }

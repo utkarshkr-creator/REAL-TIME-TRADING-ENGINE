@@ -3,8 +3,8 @@ export const CANCEL_ORDER = "CANCEL_ORDER";
 export const GET_OPEN_ORDERS = "GET_OPEN_ORDERS";
 export const ON_RAMP = "ON_RAMP";
 export const GET_DEPTH = "GET_DEPTH";
-export const GET_BALANCE="GET_BALANCE";
-export const GET_PRICE="GET_PRICE";
+export const GET_BALANCE = "GET_BALANCE";
+export const GET_PRICE = "GET_PRICE";
 export interface Ticker {
   "firstPrice": string,
   "high": string,
@@ -63,14 +63,14 @@ export type MessageFromOrderbook = {
     userId: string
   }
 } | {
-  type:"GET_BALANCE",
-  payload:{
-    userBalance:string
+  type: "GET_BALANCE",
+  payload: {
+    userBalance: string
   }
 } | {
-  type:"GET_PRICE",
-  payload:{
-    price:string
+  type: "GET_PRICE",
+  payload: {
+    price: string
   }
 }
 

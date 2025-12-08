@@ -61,6 +61,7 @@ export class SignalingManager {
           }
           if (type === "trade") {
             const newTrade = {
+              id: Math.random(), // Generate temporary ID
               price: message.data.p,
               quantity: message.data.q,
               timestamp: message.data.t,

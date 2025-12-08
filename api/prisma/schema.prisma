@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TataPrice {
+  time          DateTime @id
+  price         Float
+  volume        Float?
+  currency_code String?
+
+  @@map("tata_prices")
+}
