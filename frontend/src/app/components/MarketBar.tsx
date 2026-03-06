@@ -4,6 +4,14 @@ import { Ticker } from "../utils/types";
 import { getTicker } from "../utils/httpClient";
 import { SignalingManager } from "../utils/SignalingManager";
 
+const DECIMAL_PRECISION = parseInt(process.env.NEXT_PUBLIC_DECIMAL_PRECISION || "6", 10);
+const SCALING_FACTOR = Math.pow(10, DECIMAL_PRECISION);
+
+function descale(val: string | undefined): string {
+  if (!val) return "";
+  return (Number(val) / SCALING_FACTOR).toString();
+}
+
 export const MarketBar = ({ market }: { market: string }) => {
   const [ticker, setTicker] = useState<Ticker | null>(null);
 
@@ -13,22 +21,30 @@ export const MarketBar = ({ market }: { market: string }) => {
       `ticker@${market}`,
       (data: Partial<Ticker>) =>
         setTicker((prevTicker) => {
-          const firstPrice = data?.firstPrice ?? prevTicker?.firstPrice ?? "";
-          const lastPrice = data?.lastPrice ?? prevTicker?.lastPrice ?? "";
+          // WS values are raw 1e6 integers — descale before computing/displaying
+          const firstPrice = descale(data?.firstPrice) || prevTicker?.firstPrice || "";
+          const lastPrice  = descale(data?.lastPrice)  || prevTicker?.lastPrice  || "";
+          const high       = descale(data?.high)        || prevTicker?.high       || "";
+          const low        = descale(data?.low)         || prevTicker?.low        || "";
+          const volume     = descale(data?.volume)      || prevTicker?.volume     || "";
+          const quoteVolume = descale(data?.quoteVolume) || prevTicker?.quoteVolume || "";
+
           const priceChange = (Number(lastPrice) - Number(firstPrice)).toFixed(2);
-          const priceChangePercent = ((Number(priceChange) / Number(firstPrice)) * 100).toFixed(2);
+          const priceChangePercent = firstPrice
+            ? ((Number(priceChange) / Number(firstPrice)) * 100).toFixed(2)
+            : "0.00";
 
           return {
             firstPrice,
-            high: data?.high ?? prevTicker?.high ?? "",
+            high,
             lastPrice,
-            low: data?.low ?? prevTicker?.low ?? "",
+            low,
             priceChange,
             priceChangePercent,
-            quoteVolume: data?.quoteVolume ?? prevTicker?.quoteVolume ?? "",
+            quoteVolume,
             symbol: data?.symbol ?? prevTicker?.symbol ?? "",
             trades: data?.trades ?? prevTicker?.trades ?? "",
-            volume: data?.volume ?? prevTicker?.volume ?? "",
+            volume,
           };
         }),
       `TICKER-${market}`

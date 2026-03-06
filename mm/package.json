@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsc -b &&  node dist/index.js"
+    "dev": "DECIMAL_PRECISION=6 node dist/index.js"
   },
   "keywords": [],
   "author": "",

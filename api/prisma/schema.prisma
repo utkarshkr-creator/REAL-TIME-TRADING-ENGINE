@@ -1,3 +1,9 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,11 +13,54 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model TataPrice {
-  time          DateTime @id
-  price         Float
-  volume        Float?
-  currency_code String?
+model User {
+  id         String     @id @default(uuid())
+  email      String     @unique
+  password   String   
+  createdAt  DateTime   @default(now())
+  balances   UserBalance[]
+  sessions   Session[]
+}
 
-  @@map("tata_prices")
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Currency {
+  id                Int          @id @default(autoincrement())
+  code              String       @unique  // e.g., BTC, ETH, USD
+  name              String       // e.g., Bitcoin, Ethereum, US Dollar
+  userBalances      UserBalance[] // Relation to UserBalance
+  baseCurrencyTrade Trade[]      @relation("BaseCurrency") // Relation to Trade for base currency
+  quoteCurrencyTrade Trade[]     @relation("QuoteCurrency") // Relation to Trade for quote currency
+}
+
+model UserBalance {
+  id         Int       @id @default(autoincrement())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  currencyId Int
+  currency   Currency  @relation(fields: [currencyId], references: [id])
+  balance    Float     @default(0.0) // Store the balance for the user in that currency
+  
+  @@unique([userId, currencyId]) // Ensure that each user has only one balance entry per currency
+}
+
+model Trade {
+  id              Int       @id @default(autoincrement())
+  price           Float     // Trade price
+  volume          Float     // Trade volume
+  timestamp       DateTime  // Time when the trade occurred
+  baseCurrencyId  Int       // Base currency (e.g., BTC in BTC/USD)
+  quoteCurrencyId Int       // Quote currency (e.g., USD in BTC/USD)
+  baseCurrency    Currency  @relation("BaseCurrency", fields: [baseCurrencyId], references: [id])
+  quoteCurrency   Currency  @relation("QuoteCurrency", fields: [quoteCurrencyId], references: [id])
 }

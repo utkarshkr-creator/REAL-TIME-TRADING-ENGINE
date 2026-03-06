@@ -1,12 +1,15 @@
 import { RedisClientType, createClient } from "redis"
 import { UserManager } from "./UserManager";
+
+const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+
 export class SubscriptionManager {
   private static instance: SubscriptionManager;
   private subscriptions: Map<string, string[]> = new Map();
   private reverseSubscriptions: Map<string, string[]> = new Map();
   private redisClient: RedisClientType;
   private constructor() {
-    this.redisClient = createClient();
+    this.redisClient = createClient({ url: REDIS_URL }) as RedisClientType;
     this.redisClient.connect();
   }
   public static getInstance() {
@@ -17,11 +20,8 @@ export class SubscriptionManager {
   }
 
   public subscribe(userId: string, subscription: string) {
-
     if (this.subscriptions.get(userId)?.includes(subscription)) return;
-    //subscribe to market, with already subscribed market
     this.subscriptions.set(userId, (this.subscriptions.get(userId) || []).concat(subscription));
-    //Add usedId with Market 
     this.reverseSubscriptions.set(subscription, (this.reverseSubscriptions.get(subscription) || []).concat(userId));
     if (this.reverseSubscriptions.get(subscription)?.length === 1) {
       console.log("subscirption called for market", subscription)
@@ -35,7 +35,6 @@ export class SubscriptionManager {
     this.reverseSubscriptions.get(channel)?.forEach(s => UserManager.getInstance().getUser(s)?.emit(parsedMessage));
   }
   public unsubscribe(userId: string, subscription: string) {
-    // console.log("unsubcribeing user", userId);
     const subscriptions = this.subscriptions.get(userId);
     if (subscriptions) {
       this.subscriptions.set(userId, subscriptions.filter(s => s !== subscription));

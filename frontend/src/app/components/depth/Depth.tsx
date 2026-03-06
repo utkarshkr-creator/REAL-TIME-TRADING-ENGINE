@@ -11,6 +11,9 @@ import { AskTable } from "./AskTable";
 import { Trades } from "./Trades";
 import { SignalingManager } from "../../utils/SignalingManager";
 
+const DECIMAL_PRECISION = parseInt(process.env.NEXT_PUBLIC_DECIMAL_PRECISION || '6', 10);
+const SCALING_FACTOR = Math.pow(10, DECIMAL_PRECISION);
+
 export function Depth({ market }: { market: string }) {
   const [bids, setBids] = useState<[string, string][]>([]);
   const [asks, setAsks] = useState<[string, string][]>([]);
@@ -25,12 +28,14 @@ export function Depth({ market }: { market: string }) {
         setBids((originalBids) => {
           const bidMap = new Map(originalBids || []);
 
-          data.bids.forEach(
+          (data.bids || []).forEach(
             ([price, quantity]: [price: string, quantity: string]) => {
-              if (Number(quantity) === 0) {
-                bidMap.delete(price);
+              const scaledPrice = (Number(price) / SCALING_FACTOR).toString();
+              const scaledQuantity = (Number(quantity) / SCALING_FACTOR).toString();
+              if (Number(scaledQuantity) === 0) {
+                bidMap.delete(scaledPrice);
               } else {
-                bidMap.set(price, quantity);
+                bidMap.set(scaledPrice, scaledQuantity);
               }
             }
           );
@@ -43,12 +48,14 @@ export function Depth({ market }: { market: string }) {
         setAsks((originalAsks) => {
           const askMap = new Map(originalAsks || []);
 
-          data.asks.forEach(
+          (data.asks || []).forEach(
             ([price, quantity]: [price: string, quantity: string]) => {
-              if (Number(quantity) === 0) {
-                askMap.delete(price);
+              const scaledPrice = (Number(price) / SCALING_FACTOR).toString();
+              const scaledQuantity = (Number(quantity) / SCALING_FACTOR).toString();
+              if (Number(scaledQuantity) === 0) {
+                askMap.delete(scaledPrice);
               } else {
-                askMap.set(price, quantity);
+                askMap.set(scaledPrice, scaledQuantity);
               }
             }
           );
@@ -64,14 +71,14 @@ export function Depth({ market }: { market: string }) {
     SignalingManager.getInstance().registerCallback(
       `ticker@${market}`,
       (data: any) => {
-        setPrice(data.lastPrice);
+        setPrice((Number(data.lastPrice) / SCALING_FACTOR).toString());
       },
       `DEPTH-TICKER-${market}`
     );
 
     getDepth(market).then((d) => {
-      setBids(d.bids);
-      setAsks(d.asks.reverse());
+      setBids(d.bids ?? []);
+      setAsks((d.asks ?? []).reverse());
     });
 
     getTicker(market).then((t) => setPrice(t.lastPrice));

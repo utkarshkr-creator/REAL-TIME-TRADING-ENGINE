@@ -4,6 +4,9 @@ import { getKlines } from "../utils/httpClient";
 import { KLine } from "../utils/types";
 import { SignalingManager } from "../utils/SignalingManager";
 
+const DECIMAL_PRECISION = parseInt(process.env.NEXT_PUBLIC_DECIMAL_PRECISION || '6', 10);
+const SCALING_FACTOR = Math.pow(10, DECIMAL_PRECISION);
+
 export function TradeView({ market }: { market: string }) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartManagerRef = useRef<ChartManager>(null);
@@ -56,7 +59,11 @@ export function TradeView({ market }: { market: string }) {
     SignalingManager.getInstance().registerCallback(
       `trade@${market}`,
       (data: any) => {
-        chartManagerRef.current?.update(data);
+        const scaledData = {
+          ...data,
+          price: (Number(data.price) / SCALING_FACTOR).toString()
+        };
+        chartManagerRef.current?.update(scaledData);
       },
       `TRADE-${market}`
     );

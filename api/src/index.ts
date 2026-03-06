@@ -5,6 +5,7 @@ import { orderRouter } from "./routes/order";
 import { tradesRouter } from "./routes/trades";
 import { klineRouter } from "./routes/Kline";
 import { tickerRouter } from "./routes/ticker";
+import { authRouter } from "./routes/auth";
 
 const app = express();
 app.use(cors());
@@ -15,6 +16,7 @@ app.use("/api/v1/order", orderRouter);
 app.use("/api/v1/trades", tradesRouter);
 app.use("/api/v1/klines", klineRouter);
 app.use("/api/v1/tickers", tickerRouter);
+app.use("/api/v1/auth", authRouter);
 
 
 app.listen(3006, () => {

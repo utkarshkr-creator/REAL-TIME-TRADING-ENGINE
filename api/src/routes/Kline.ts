@@ -2,11 +2,7 @@ import { Client } from 'pg';
 import { Router } from "express";
 
 const pgClient = new Client({
-  user: 'your_user',
-  host: 'localhost',
-  database: 'my_database',
-  password: 'your_password',
-  port: 5432,
+  connectionString: process.env.DATABASE_URL || 'postgres://your_user:your_password@localhost:5432/my_database',
 });
 pgClient.connect();
 
@@ -14,7 +10,7 @@ export const klineRouter = Router();
 
 
 klineRouter.get("/", async (req, res) => {
-  const { market, interval, startTime, endTime } = req.query;
+  const { symbol, interval, startTime, endTime } = req.query;
 
   let query;
   switch (interval) {

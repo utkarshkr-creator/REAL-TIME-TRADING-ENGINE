@@ -1,48 +1,57 @@
 "use client";
-import { act, useEffect, useState } from "react";
-import { getBalance, getPrice } from "../utils/httpClient";
+import { useEffect, useState } from "react";
+import { getBalance } from "../utils/httpClient";
 import axios from "axios";
 
-const QUOTEASSET="INR";
+const QUOTEASSET = "INR";
 const BASE_URL = "http://localhost:3006";
+
+const DECIMAL_PRECISION = parseInt(process.env.NEXT_PUBLIC_DECIMAL_PRECISION || "6", 10);
+const SCALING_FACTOR = Math.pow(10, DECIMAL_PRECISION);
 
 export function SwapUI({ market }: { market: string }) {
   const [amount, setAmount] = useState("");
   const [activeTab, setActiveTab] = useState("buy");
   const [type, setType] = useState("limit");
-  const [balance,setBalance]=useState<number>(0);
-  const [userId,setUserId]=useState("1");
-  const [price,setPrice]=useState<number>(0)
-  const [quantity,setQuantity]=useState<number>(0);
-  useEffect(() => {
-    getBalance(userId,QUOTEASSET).then((m:number) => setBalance(m));
-  }, []);
+  const [balance, setBalance] = useState<number>(0);
+  const [userId, setUserId] = useState("1");
+  const [price, setPrice] = useState<number>(0);
+  const [quantity, setQuantity] = useState<number>(0);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
-  async function onBuy(){
-    await axios.post(`${BASE_URL}/api/v1/order`, {
-        market: market,
-        price: price,
-        quantity: quantity,
-        side: "buy",
+  useEffect(() => {
+    // getBalance returns raw engine integer — divide by SCALING_FACTOR to display human-readable
+    getBalance(userId, QUOTEASSET).then((raw: number) => setBalance(raw / SCALING_FACTOR));
+  }, [userId]);
+
+  async function placeOrder(side: "buy" | "sell") {
+    if (!price || !quantity) return;
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      // Send human-readable values — the API (order.ts) multiplies by SCALING_FACTOR
+      await axios.post(`${BASE_URL}/api/v1/order`, {
+        market,
+        price,
+        quantity,
+        side,
         userId,
       });
-  }
-  async function onSell(){
-    await axios.post(`${BASE_URL}/api/v1/order`, {
-        market: market,
-        price: price,
-        quantity: quantity,
-        side: "sell",
-        userId,
-      });
-  }
-  const onClickHandler=async ()=>{
-    if(activeTab==="buy"){
-      await onBuy();
-    }else{
-      await onSell();
+      setStatus("success");
+      // Refresh balance
+      getBalance(userId, QUOTEASSET).then((raw: number) => setBalance(raw / SCALING_FACTOR));
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch (e: any) {
+      setStatus("error");
+      setErrorMsg(e?.response?.data || e.message || "Order failed");
+      setTimeout(() => setStatus("idle"), 3000);
     }
   }
+
+  const onClickHandler = async () => {
+    await placeOrder(activeTab as "buy" | "sell");
+  };
   return (
     <div>
       <div className="flex flex-col">
@@ -65,7 +74,7 @@ export function SwapUI({ market }: { market: string }) {
                     Available Balance
                   </p>
                   <p className="font-medium text-xs text-baseTextHighEmphasis">
-                    {balance}
+                    {balance.toFixed(2)} {QUOTEASSET}
                   </p>
                 </div>
               </div>
@@ -109,7 +118,7 @@ export function SwapUI({ market }: { market: string }) {
               </div>
               <div className="flex justify-end flex-row">
                 <p className="font-medium pr-2 text-xs text-baseTextMedEmphasis">
-                  ≈ {quantity*price} INR
+                  ≈ {(quantity * price).toFixed(2)} {QUOTEASSET}
                 </p>
               </div>
               {/* <div className="flex justify-center flex-row mt-2 gap-3">
@@ -129,12 +138,25 @@ export function SwapUI({ market }: { market: string }) {
             </div>
             <button
               type="button"
-              className="font-semibold  focus:ring-blue-200 focus:none focus:outline-none text-center h-12 rounded-xl text-base px-4 py-2 my-4 bg-greenPrimaryButtonBackground text-greenPrimaryButtonText active:scale-98"
-              data-rac=""
+              disabled={status === "loading" || !price || !quantity}
+              className={`font-semibold focus:ring-blue-200 focus:none focus:outline-none text-center h-12 rounded-xl text-base px-4 py-2 my-4 active:scale-98 w-full transition-colors ${
+                status === "loading"
+                  ? "opacity-60 cursor-not-allowed bg-greenPrimaryButtonBackground text-greenPrimaryButtonText"
+                  : status === "success"
+                  ? "bg-green-600 text-white"
+                  : status === "error"
+                  ? "bg-red-600 text-white"
+                  : activeTab === "buy"
+                  ? "bg-greenPrimaryButtonBackground text-greenPrimaryButtonText"
+                  : "bg-red-500 text-white"
+              }`}
               onClick={onClickHandler}
             >
-              {activeTab=='buy'?"Buy":"Sell"}
+              {status === "loading" ? "Placing..." : status === "success" ? "✓ Placed!" : status === "error" ? "✗ Failed" : activeTab === "buy" ? "Buy" : "Sell"}
             </button>
+            {status === "error" && errorMsg && (
+              <p className="text-xs text-red-400 text-center -mt-2 pb-1">{errorMsg}</p>
+            )}
             {/* <div className="flex justify-between flex-row mt-1">
               <div className="flex flex-row gap-2">
                 <div className="flex items-center">

@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const pg_1 = require("pg");
 const client = new pg_1.Client({
     user: 'your_user',
-    host: 'localhost',
+    host: process.env.DB_HOST || 'localhost',
     database: 'my_database',
     password: 'your_password',
     port: 5432,

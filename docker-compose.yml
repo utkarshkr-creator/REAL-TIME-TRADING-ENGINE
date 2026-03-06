@@ -1,0 +1,127 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: timescaledb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: my_database
+      POSTGRES_USER: your_user
+      POSTGRES_PASSWORD: your_password
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+    networks:
+      - exchange-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U your_user -d my_database" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - exchange-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: api
+    ports:
+      - "3006:3006"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://your_user:your_password@timescaledb:5432/my_database
+      - REDIS_URL=redis://redis:6379
+      - DB_HOST=timescaledb
+      - DECIMAL_PRECISION=6
+    networks:
+      - exchange-network
+
+  db:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    container_name: db
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://your_user:your_password@timescaledb:5432/my_database
+      - REDIS_URL=redis://redis:6379
+      - DB_HOST=timescaledb
+    networks:
+      - exchange-network
+
+  ws:
+    build:
+      context: ./ws
+      dockerfile: Dockerfile
+    container_name: ws
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - exchange-network
+
+  engine:
+    build:
+      context: ./exchangeManger
+      dockerfile: Dockerfile
+    container_name: engine
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REDIS_ADDR=redis:6379
+      - WITH_SNAPSHOT=true
+    volumes:
+      - engine-data:/app/data
+    networks:
+      - exchange-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+      - ws
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3006
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8080
+      - NEXT_PUBLIC_DECIMAL_PRECISION=6
+    networks:
+      - exchange-network
+
+volumes:
+  timescale-data:
+  engine-data:
+
+
+networks:
+  exchange-network:
+    driver: bridge

@@ -5,6 +5,9 @@ import { getTrades } from "../../utils/httpClient";
 import { Trade } from "../../utils/types";
 import { SignalingManager } from "../../utils/SignalingManager";
 
+const DECIMAL_PRECISION = parseInt(process.env.NEXT_PUBLIC_DECIMAL_PRECISION || '6', 10);
+const SCALING_FACTOR = Math.pow(10, DECIMAL_PRECISION);
+
 export function Trades({ market }: { market: string }) {
   const [trades, setTrades] = useState<Trade[]>([]);
 
@@ -20,8 +23,13 @@ export function Trades({ market }: { market: string }) {
       `trade@${market}`,
       (newTrade: Trade) => {
         console.log("WebSocket trade received:", JSON.stringify(newTrade, null, 2));
+        const scaledTrade = {
+            ...newTrade,
+            price: (Number(newTrade.price) / SCALING_FACTOR).toString(),
+            quantity: (Number(newTrade.quantity) / SCALING_FACTOR).toString()
+        };
         setTrades((prevTrades) => {
-          const updatedTrades = [newTrade, ...prevTrades];
+          const updatedTrades = [scaledTrade, ...prevTrades];
           return updatedTrades.slice(0, 20);
         });
       },

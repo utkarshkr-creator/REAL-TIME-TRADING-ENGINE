@@ -11,17 +11,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const pg_1 = require("pg");
 const redis_1 = require("redis");
+require("./cronJob");
 const pgClient = new pg_1.Client({
-    user: 'your_user',
-    host: 'localhost',
-    database: 'my_database',
-    password: 'your_password',
-    port: 5432,
+    connectionString: process.env.DATABASE_URL || 'postgres://your_user:your_password@localhost:5432/my_database',
 });
 pgClient.connect();
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        const redisClient = (0, redis_1.createClient)();
+        const redisClient = (0, redis_1.createClient)({
+            url: process.env.REDIS_URL || 'redis://localhost:6379',
+        });
         yield redisClient.connect();
         console.log("connected to redis");
         while (true) {
@@ -33,11 +32,12 @@ function main() {
                 if (data.type === "TRADE_ADDED") {
                     console.log("adding data");
                     console.log(data);
-                    const price = data.data.price;
+                    const price = parseFloat(data.data.price);
+                    const volume = parseFloat(data.data.quantity);
                     const timestamp = new Date(data.data.timestamp);
-                    const query = 'INSERT INTO tata_prices (time, price) VALUES ($1, $2)';
-                    // TODO: How to add volume?
-                    const values = [timestamp, price];
+                    const currencyCode = data.data.market || 'TATA_INR';
+                    const query = 'INSERT INTO tata_prices (time, price, volume, currency_code) VALUES ($1, $2, $3, $4)';
+                    const values = [timestamp, price, volume, currencyCode];
                     yield pgClient.query(query, values);
                 }
             }

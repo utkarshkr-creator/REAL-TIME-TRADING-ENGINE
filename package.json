@@ -1,0 +1,32 @@
+{
+  "name": "exchange",
+  "version": "1.0.0",
+  "description": "I built a real-time cryptocurrency trading engine that simulates how major exchanges like Binance or Coinbase work. Think of it as a complete trading platform where users can place buy/sell orders, see live price charts, and execute trades instantly - just like you'd see on any professional trading platform.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/utkarshkr-creator/REAL-TIME-TRADING-ENGINE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/utkarshkr-creator/REAL-TIME-TRADING-ENGINE/issues"
+  },
+  "homepage": "https://github.com/utkarshkr-creator/REAL-TIME-TRADING-ENGINE#readme",
+  "dependencies": {
+    "@types/node": "^25.3.3",
+    "@types/ws": "^8.18.1",
+    "axios": "^1.13.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "ws": "^8.19.0"
+  }
+}
