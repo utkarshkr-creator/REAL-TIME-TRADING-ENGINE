@@ -5,6 +5,7 @@ export const ON_RAMP = "ON_RAMP";
 export const GET_DEPTH = "GET_DEPTH";
 export const GET_BALANCE = "GET_BALANCE";
 export const GET_PRICE = "GET_PRICE";
+export const BALANCE_UPDATE = "BALANCE_UPDATE";
 export interface Ticker {
   "firstPrice": string,
   "high": string,

@@ -17,16 +17,22 @@ function validatePrecision(val: string): boolean {
 }
 
 orderRouter.post('/', authMiddleware, async (req, res) => {
-  const { market, price, quantity, side } = req.body;
+  const { market, price, triggerPrice, quantity, side, type = 'limit' } = req.body;
   const userId = req.userId as string; // from authMiddleware
-  const priceStr = price.toString();
+  const priceStr = price ? price.toString() : "0";
+  const triggerPriceStr = triggerPrice ? triggerPrice.toString() : "0";
   const quantityStr = quantity.toString();
 
-  if (!validatePrecision(priceStr) || !validatePrecision(quantityStr)) {
+  if ((type === 'limit' || type === 'stop_limit') && (!validatePrecision(priceStr) || !validatePrecision(quantityStr))) {
     return res.status(400).send(`Price and quantity can have at most ${MAX_ALLOWED_DECIMALS} decimal places`);
+  } else if ((type === 'market' || type === 'stop_market') && !validatePrecision(quantityStr)) {
+    return res.status(400).send(`Quantity can have at most ${MAX_ALLOWED_DECIMALS} decimal places`);
+  } else if ((type === 'stop_limit' || type === 'stop_market') && !validatePrecision(triggerPriceStr)) {
+    return res.status(400).send(`TriggerPrice can have at most ${MAX_ALLOWED_DECIMALS} decimal places`);
   }
 
-  const scaledPrice = Math.round(parseFloat(priceStr) * SCALING_FACTOR).toString();
+  const scaledPrice = (type === 'limit' || type === 'stop_limit') ? Math.round(parseFloat(priceStr) * SCALING_FACTOR).toString() : "0";
+  const scaledTriggerPrice = (type === 'stop_limit' || type === 'stop_market') ? Math.round(parseFloat(triggerPriceStr) * SCALING_FACTOR).toString() : "0";
   const scaledQuantity = Math.round(parseFloat(quantityStr) * SCALING_FACTOR).toString();
 
   const response = await RedisManager.getInstance().sendAndAwait({
@@ -34,9 +40,11 @@ orderRouter.post('/', authMiddleware, async (req, res) => {
     data: {
       market,
       price: scaledPrice,
+      triggerPrice: scaledTriggerPrice,
       quantity: scaledQuantity,
       side,
-      userId
+      userId,
+      type
     }
   });
   res.json(response.payload);

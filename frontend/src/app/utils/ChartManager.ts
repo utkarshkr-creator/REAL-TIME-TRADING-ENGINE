@@ -44,18 +44,20 @@ export class ChartManager {
             },
             grid: {
                 horzLines: {
-                    visible: false,
+                    color: "rgba(255, 255, 255, 0.05)",
+                    visible: true,
                 },
                 vertLines: {
-                    visible: false,
+                    color: "rgba(255, 255, 255, 0.05)",
+                    visible: true,
                 },
             },
             layout: {
                 background: {
                     type: ColorType.Solid,
-                    color: layout.background,
+                    color: "#0B0E14", // Deeper, more premium crypto dark background
                 },
-                textColor: "white",
+                textColor: "rgba(255, 255, 255, 0.7)",
             },
             timeScale: {
                 timeVisible: true,
@@ -64,11 +66,11 @@ export class ChartManager {
         });
         this.chart = chart;
         this.candleSeries = chart.addCandlestickSeries({
-            upColor: '#26a69a',
-            downColor: '#ef5350',
+            upColor: '#2ebd85',      // Binance-style green
+            downColor: '#f6465d',    // Binance-style red
             borderVisible: false,
-            wickUpColor: '#26a69a',
-            wickDownColor: '#ef5350',
+            wickUpColor: '#2ebd85',
+            wickDownColor: '#f6465d',
         });
         // console.log("initialData", initialData);
         this.candleSeries.setData(

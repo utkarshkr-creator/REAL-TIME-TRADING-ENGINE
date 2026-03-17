@@ -23,10 +23,11 @@ export function Trades({ market }: { market: string }) {
       `trade@${market}`,
       (newTrade: Trade) => {
         console.log("WebSocket trade received:", JSON.stringify(newTrade, null, 2));
+        const quantityRaw = newTrade.quantity || (newTrade as any).qty || "0";
         const scaledTrade = {
             ...newTrade,
             price: (Number(newTrade.price) / SCALING_FACTOR).toString(),
-            quantity: (Number(newTrade.quantity) / SCALING_FACTOR).toString()
+            quantity: (Number(quantityRaw) / SCALING_FACTOR).toString()
         };
         setTrades((prevTrades) => {
           const updatedTrades = [scaledTrade, ...prevTrades];
@@ -57,10 +58,10 @@ export function Trades({ market }: { market: string }) {
   return (
     <div className="flex flex-col h-full bg-baseBackgroundL1">
       {/* Table Header */}
-      <div className="flex justify-between px-3 py-2 text-xs font-medium border-b border-slate-800">
-        <div className="text-slate-400">Price (USD)</div>
-        <div className="text-slate-400">Size (SOL)</div>
-        <div className="text-slate-400">Time</div>
+      <div className="flex justify-between px-4 py-2 text-xs font-semibold text-slate-400 bg-[#0B0E14] border-b border-baseBorder">
+        <div className="text-left">Price (INR)</div>
+        <div className="text-right">Size (TATA)</div>
+        <div className="text-right">Time</div>
       </div>
 
       {/* Trades List */}
@@ -83,7 +84,7 @@ export function Trades({ market }: { market: string }) {
                 {Number(trade.price).toFixed(2)}
               </div>
               <div className="text-slate-300">
-                {Number(trade.quantity).toFixed(2)}
+                {Number(trade.quantity).toFixed(4)}
               </div>
               <div className="text-slate-500">{formatTime(trade.timestamp)}</div>
             </div>

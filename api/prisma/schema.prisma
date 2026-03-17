@@ -49,7 +49,8 @@ model UserBalance {
   user       User      @relation(fields: [userId], references: [id])
   currencyId Int
   currency   Currency  @relation(fields: [currencyId], references: [id])
-  balance    Float     @default(0.0) // Store the balance for the user in that currency
+  available  String    @default("0") // Scaled engine integer representation of available funds
+  locked     String    @default("0") // Scaled engine integer representation of funds locked in orders
   
   @@unique([userId, currencyId]) // Ensure that each user has only one balance entry per currency
 }

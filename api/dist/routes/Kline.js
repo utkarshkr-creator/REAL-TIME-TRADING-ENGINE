@@ -13,16 +13,12 @@ exports.klineRouter = void 0;
 const pg_1 = require("pg");
 const express_1 = require("express");
 const pgClient = new pg_1.Client({
-    user: 'your_user',
-    host: 'localhost',
-    database: 'my_database',
-    password: 'your_password',
-    port: 5432,
+    connectionString: process.env.DATABASE_URL || 'postgres://your_user:your_password@localhost:5432/my_database',
 });
 pgClient.connect();
 exports.klineRouter = (0, express_1.Router)();
 exports.klineRouter.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { market, interval, startTime, endTime } = req.query;
+    const { symbol, interval, startTime, endTime } = req.query;
     let query;
     switch (interval) {
         case '1m':

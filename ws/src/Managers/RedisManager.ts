@@ -24,8 +24,8 @@ export class SubscriptionManager {
     this.subscriptions.set(userId, (this.subscriptions.get(userId) || []).concat(subscription));
     this.reverseSubscriptions.set(subscription, (this.reverseSubscriptions.get(subscription) || []).concat(userId));
     if (this.reverseSubscriptions.get(subscription)?.length === 1) {
-      console.log("subscirption called for market", subscription)
-      this.redisClient.subscribe(subscription, this.redisCallbackHandler);
+      console.log("subscription called for market", subscription);
+      this.redisClient.subscribe(subscription, this.redisCallbackHandler).catch(e => console.error("Redis sub err:", e));
     }
   }
   private redisCallbackHandler = (message: string, channel: string) => {
@@ -44,7 +44,7 @@ export class SubscriptionManager {
       this.reverseSubscriptions.set(subscription, reverseSubscriptions.filter(x => x !== userId));
       if (this.reverseSubscriptions.get(subscription)?.length === 0) {
         this.reverseSubscriptions.delete(subscription);
-        this.redisClient.unsubscribe(subscription);
+        this.redisClient.unsubscribe(subscription).catch(e => console.error("Redis unsub err:", e));
       }
     }
   }

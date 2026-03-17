@@ -3,3 +3,7 @@ Backend
 db_processor
 .DS_Store
 High_Level_system_design.excalidraw
+exchange_Manager
+temp
+.env
+**/.env

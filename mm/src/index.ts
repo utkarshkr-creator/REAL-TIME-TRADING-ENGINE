@@ -6,6 +6,7 @@ import axios from "axios";
 const BASE_URL = "http://localhost:3006";
 const MARKET = "TATA_INR";
 const USER_IDS = ["1", "2", "3", "6", "7"];
+const ADMIN_SECRET = process.env.ADMIN_SECRET || "super-secret-key-change-me";
 
 // Precision — must match API's DECIMAL_PRECISION env var
 const DECIMAL_PRECISION = parseInt(process.env.DECIMAL_PRECISION || "6", 10);
@@ -49,7 +50,10 @@ async function getMidPrice(): Promise<number> {
   try {
     const resp = await axios.get(
       `${BASE_URL}/api/v1/depth?symbol=${MARKET}`,
-      { timeout: 2000 }
+      {
+        timeout: 2000,
+        headers: { "x-admin-secret": ADMIN_SECRET }
+      }
     );
     const bids: string[][] = resp.data?.bids ?? [];
     const asks: string[][] = resp.data?.asks ?? [];
@@ -77,7 +81,10 @@ async function getOpenOrders(userId: string): Promise<any[]> {
   try {
     const resp = await axios.get(
       `${BASE_URL}/api/v1/order/open?userId=${userId}&market=${MARKET}`,
-      { timeout: 2000 }
+      {
+        timeout: 2000,
+        headers: { "x-admin-secret": ADMIN_SECRET }
+      }
     );
     return Array.isArray(resp.data) ? resp.data : [];
   } catch {
@@ -90,6 +97,7 @@ async function cancelOrder(orderId: string): Promise<void> {
     await axios.delete(`${BASE_URL}/api/v1/order`, {
       data: { orderId, market: MARKET },
       timeout: 2000,
+      headers: { "x-admin-secret": ADMIN_SECRET }
     });
   } catch { /* ignore */ }
 }
@@ -107,7 +115,10 @@ async function placeOrder(
       quantity: fmtQty(humanQty),
       side,
       userId,
-    }, { timeout: 3000 });
+    }, {
+      timeout: 3000,
+      headers: { "x-admin-secret": ADMIN_SECRET }
+    });
     // Update inventory tracking
     inventory[userId] = (inventory[userId] ?? 0) + (side === "buy" ? humanQty : -humanQty);
     return true;
@@ -177,6 +188,22 @@ async function runCycle() {
     const askPrice = mid * (1 + levelBps / 10000);
     const qty = BASE_QTY + QTY_STEP * i;
     placePromises.push(placeOrder("sell", askPrice, qty, randomUser()));
+  }
+
+  // Add random taking/crossing orders to simulate active trading
+  // Randomly fire a taker order (100% chance per cycle for testing)
+  if (Math.random() < 1.0) {
+    console.log("[MM] Sent taker trade!");
+    const takerSide = Math.random() < 0.5 ? "buy" : "sell"; // Cross the spread: buy at a higher price, or sell at a lower price
+    // We add/subtract a large enough spread (e.g., 50 bps) to ensure it gets filled immediately against resting orders
+    const aggressivePrice = takerSide === "buy"
+      ? mid * (1 + (BASE_SPREAD_BPS + 20) / 10000)
+      : mid * (1 - (BASE_SPREAD_BPS + 20) / 10000);
+
+    const randomQty = BASE_QTY + (Math.random() * BASE_QTY * 2);
+    placePromises.push(placeOrder(takerSide, aggressivePrice, randomQty, randomUser()));
+
+    console.log(`[MM] Extraneous random simulation TAKER order: ${takerSide === "buy" ? "BUY" : "SELL"} ${randomQty.toFixed(5)} @ ~${aggressivePrice.toFixed(2)}`);
   }
 
   const results = await Promise.all(placePromises);

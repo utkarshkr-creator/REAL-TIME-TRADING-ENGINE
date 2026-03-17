@@ -19,9 +19,14 @@ const client = new Client({
 function initializeDB() {
     return __awaiter(this, void 0, void 0, function* () {
         yield client.connect();
+        // Create extension
+        yield client.query(`
+    CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+  `);
         // Drop table if exists
         yield client.query(`
     DROP TABLE IF EXISTS "tata_prices" CASCADE;
+    DROP TABLE IF EXISTS "tata_orders" CASCADE;
   `);
         // Create tata_prices table
         yield client.query(`
@@ -29,7 +34,24 @@ function initializeDB() {
         time            TIMESTAMP WITH TIME ZONE NOT NULL,
         price           DOUBLE PRECISION,
         volume          DOUBLE PRECISION,
-        currency_code   VARCHAR(10)
+        currency_code   VARCHAR(10),
+        buyer_id        VARCHAR(255),
+        seller_id       VARCHAR(255)
+    );
+  `);
+        // Create tata_orders table
+        yield client.query(`
+    CREATE TABLE "tata_orders"(
+        order_id      VARCHAR PRIMARY KEY,
+        user_id       VARCHAR NOT NULL,
+        market        VARCHAR NOT NULL,
+        price         DOUBLE PRECISION NOT NULL,
+        quantity      DOUBLE PRECISION NOT NULL,
+        executed_qty  DOUBLE PRECISION NOT NULL DEFAULT 0,
+        side          VARCHAR NOT NULL,
+        status        VARCHAR NOT NULL DEFAULT 'open',
+        created_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `);
         // Convert tata_prices to a hypertable

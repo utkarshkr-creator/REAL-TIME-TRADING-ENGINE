@@ -48,8 +48,9 @@ export async function getKlines(market: string, interval: string, startTime: num
   const response = await axios.get(`${BASE_URL}/klines?symbol=${market}&interval=${interval}&startTime=${startTime}&endTime=${endTime}`);
   const data: KLine[] = response.data;
   if (!Array.isArray(data)) return [];
-  return data.sort((x, y) => (new Date(x.end).getTime() < new Date(y.end).getTime() ? -1 : 1)).map((k: KLine) => ({
+  return data.sort((x, y) => (new Date(x.end || (x as any).bucket).getTime() < new Date(y.end || (y as any).bucket).getTime() ? -1 : 1)).map((k: KLine) => ({
     ...k,
+    end: k.end || (k as any).bucket,
     close: (Number(k.close) / SCALING_FACTOR).toString(),
     high: (Number(k.high) / SCALING_FACTOR).toString(),
     low: (Number(k.low) / SCALING_FACTOR).toString(),

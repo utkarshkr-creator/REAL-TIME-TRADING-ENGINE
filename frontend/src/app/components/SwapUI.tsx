@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { getBalance } from "../utils/httpClient";
 import axios from "axios";
+import { useAuth } from "../utils/AuthContext";
+import { useRouter } from "next/navigation";
 
 const QUOTEASSET = "INR";
 const BASE_URL = "http://localhost:3006";
@@ -14,16 +16,29 @@ export function SwapUI({ market }: { market: string }) {
   const [activeTab, setActiveTab] = useState("buy");
   const [type, setType] = useState("limit");
   const [balance, setBalance] = useState<number>(0);
-  const [userId, setUserId] = useState("1");
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [price, setPrice] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(0);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    // getBalance returns raw engine integer — divide by SCALING_FACTOR to display human-readable
-    getBalance(userId, QUOTEASSET).then((raw: number) => setBalance(raw / SCALING_FACTOR));
-  }, [userId]);
+    if (!user) {
+      setBalance(0);
+      return;
+    }
+    const fetchDBBalance = async () => {
+      try {
+        const res = await axios.get(`${BASE_URL}/api/v1/wallet/balances`);
+        const bal = res.data.balances.find((b: any) => b.currency === QUOTEASSET);
+        if (bal) setBalance(Number(bal.available));
+      } catch (err) {
+        console.error("fetchDBBalance error", err);
+      }
+    };
+    fetchDBBalance();
+  }, [user]);
 
   async function placeOrder(side: "buy" | "sell") {
     if (!price || !quantity) return;
@@ -31,16 +46,22 @@ export function SwapUI({ market }: { market: string }) {
     setErrorMsg("");
     try {
       // Send human-readable values — the API (order.ts) multiplies by SCALING_FACTOR
+      // Auth context automatically injects the Bearer token into headers, so we don't need to pass userId
       await axios.post(`${BASE_URL}/api/v1/order`, {
         market,
         price,
         quantity,
         side,
-        userId,
       });
       setStatus("success");
       // Refresh balance
-      getBalance(userId, QUOTEASSET).then((raw: number) => setBalance(raw / SCALING_FACTOR));
+      if (user) {
+        try {
+          const res = await axios.get(`${BASE_URL}/api/v1/wallet/balances`);
+          const bal = res.data.balances.find((b: any) => b.currency === QUOTEASSET);
+          if (bal) setBalance(Number(bal.available));
+        } catch (e) {}
+      }
       setTimeout(() => setStatus("idle"), 2000);
     } catch (e: any) {
       setStatus("error");
@@ -50,6 +71,10 @@ export function SwapUI({ market }: { market: string }) {
   }
 
   const onClickHandler = async () => {
+    if (!user) {
+      router.push("/signin");
+      return;
+    }
     await placeOrder(activeTab as "buy" | "sell");
   };
   return (
@@ -138,7 +163,7 @@ export function SwapUI({ market }: { market: string }) {
             </div>
             <button
               type="button"
-              disabled={status === "loading" || !price || !quantity}
+              disabled={authLoading || (!!user && (status === "loading" || !price || !quantity))}
               className={`font-semibold focus:ring-blue-200 focus:none focus:outline-none text-center h-12 rounded-xl text-base px-4 py-2 my-4 active:scale-98 w-full transition-colors ${
                 status === "loading"
                   ? "opacity-60 cursor-not-allowed bg-greenPrimaryButtonBackground text-greenPrimaryButtonText"
@@ -152,7 +177,7 @@ export function SwapUI({ market }: { market: string }) {
               }`}
               onClick={onClickHandler}
             >
-              {status === "loading" ? "Placing..." : status === "success" ? "✓ Placed!" : status === "error" ? "✗ Failed" : activeTab === "buy" ? "Buy" : "Sell"}
+              {!user ? "Log in to Trade" : status === "loading" ? "Placing..." : status === "success" ? "✓ Placed!" : status === "error" ? "✗ Failed" : activeTab === "buy" ? "Buy" : "Sell"}
             </button>
             {status === "error" && errorMsg && (
               <p className="text-xs text-red-400 text-center -mt-2 pb-1">{errorMsg}</p>

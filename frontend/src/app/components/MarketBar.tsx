@@ -30,7 +30,7 @@ export const MarketBar = ({ market }: { market: string }) => {
           const quoteVolume = descale(data?.quoteVolume) || prevTicker?.quoteVolume || "";
 
           const priceChange = (Number(lastPrice) - Number(firstPrice)).toFixed(2);
-          const priceChangePercent = firstPrice
+          const priceChangePercent = firstPrice && Number(firstPrice) > 0
             ? ((Number(priceChange) / Number(firstPrice)) * 100).toFixed(2)
             : "0.00";
 
@@ -66,12 +66,12 @@ export const MarketBar = ({ market }: { market: string }) => {
           <div className="flex items-center flex-row space-x-8 pl-4">
             <div className="flex flex-col h-full justify-center">
               <p
-                className={`font-medium tabular-nums text-greenText text-md text-green-500`}
+                className={`font-medium tabular-nums text-greenText text-md text-[#2ebd85]`}
               >
-                ${ticker?.lastPrice || 0}
+                ₹{ticker?.lastPrice || 0}
               </p>
               <p className="font-medium text-sm text-sm tabular-nums">
-                ${ticker?.lastPrice || 0}
+                ₹{ticker?.lastPrice || 0}
               </p>
             </div>
             <div className="flex flex-col">
@@ -81,13 +81,13 @@ export const MarketBar = ({ market }: { market: string }) => {
               <p
                 className={` text-sm font-medium tabular-nums leading-5 text-sm text-greenText ${
                   Number(ticker?.priceChange) > 0
-                    ? "text-green-500"
-                    : "text-red-500"
+                    ? "text-[#2ebd85]"
+                    : Number(ticker?.priceChange) < 0 ? "text-[#f6465d]" : "text-slate-400"
                 }`}
               >
                 {Number(ticker?.priceChange) > 0 ? "+" : ""}{" "}
                 {ticker?.priceChange}{" "}
-                {Number(ticker?.priceChangePercent)?.toFixed(2)}%
+                {ticker?.priceChangePercent}%
               </p>
             </div>
             <div className="flex flex-col">

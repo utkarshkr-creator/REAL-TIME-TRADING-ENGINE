@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { PrismaClient } from "../../db_processor/node_modules/@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 

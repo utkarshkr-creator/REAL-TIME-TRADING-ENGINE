@@ -14,6 +14,19 @@ declare global {
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
+    const adminSecret = req.headers["x-admin-secret"];
+
+    // Allow bypass for internal services if secret matches
+    if (adminSecret && adminSecret === JWT_SECRET) {
+        // If it's an admin request, they can specify the userId in the body or query
+        const bodyUserId = req.body?.userId;
+        const queryUserId = req.query?.userId as string;
+
+        if (bodyUserId || queryUserId) {
+            req.userId = bodyUserId || queryUserId;
+            return next();
+        }
+    }
 
     if (!authHeader?.startsWith("Bearer ")) {
         return res.status(401).json({ error: "Missing or invalid authorization token" });

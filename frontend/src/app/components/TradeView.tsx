@@ -89,16 +89,16 @@ export function TradeView({ market }: { market: string }) {
 
   return (
     <div className="flex flex-col flex-1 bg-baseBackgroundL1 w-full h-full">
-      <div className="flex flex-row items-center justify-between px-4 py-3 border-b border-baseBorder">
-        <div className="flex items-center gap-1">
+      <div className="flex flex-row items-center justify-between px-4 py-2 border-b border-baseBorder bg-[#0B0E14]">
+        <div className="flex items-center gap-2">
           {["1m", "1h", "1d"].map((int) => (
             <button
               key={int}
               onClick={() => setInterval(int)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
                 interval === int
-                  ? "bg-slate-700 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  ? "bg-slate-800 text-[#2ebd85]"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/50"
               }`}
             >
               {int}

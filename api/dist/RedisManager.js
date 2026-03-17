@@ -2,11 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RedisManager = void 0;
 const redis_1 = require("redis");
+const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 class RedisManager {
     constructor() {
-        this.client = (0, redis_1.createClient)();
+        this.client = (0, redis_1.createClient)({ url: REDIS_URL });
         this.client.connect();
-        this.publisher = (0, redis_1.createClient)();
+        this.publisher = (0, redis_1.createClient)({ url: REDIS_URL });
         this.publisher.connect();
     }
     static getInstance() {

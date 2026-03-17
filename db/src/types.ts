@@ -7,7 +7,9 @@ export type DbMessage = {
     quantity: string,
     quoteQuantity: string,
     timestamp: number,
-    market: string
+    market: string,
+    buyerId: string,
+    sellerId: string
   }
 } | {
   type: "ORDER_UPDATE",
@@ -18,5 +20,7 @@ export type DbMessage = {
     price?: string,
     quantity?: string,
     side?: "buy" | "sell",
+    userId?: string,     // The ID to track who owns the order
+    status?: string      // Derived status: open, filled, cancelled
   }
 }

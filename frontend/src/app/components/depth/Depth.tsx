@@ -155,10 +155,10 @@ export function Depth({ market }: { market: string }) {
       {activeTab === "book" ? (
         <>
           {/* Table Header */}
-          <div className="flex justify-between px-3 py-2 text-xs font-medium">
-            <div className="text-slate-400">Price (USD)</div>
-            <div className="text-slate-400">Size (SOL)</div>
-            <div className="text-slate-400">Total (SOL)</div>
+          <div className="flex justify-between px-4 py-2 text-xs font-semibold text-slate-400 bg-[#0B0E14] border-y border-baseBorder">
+            <div>Price (INR)</div>
+            <div className="text-right">Size (TATA)</div>
+            <div className="text-right">Total (TATA)</div>
           </div>
 
           {/* Order Book */}

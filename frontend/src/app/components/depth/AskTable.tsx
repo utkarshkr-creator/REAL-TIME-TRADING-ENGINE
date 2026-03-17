@@ -60,9 +60,9 @@ function Ask({
         }}
       ></div>
       <div className="flex justify-between text-xs w-full px-3 py-1 relative z-10">
-        <div className="text-red-500 font-medium">{Number(price).toFixed(2)}</div>
-        <div className="text-slate-300">{Number(quantity).toFixed(2)}</div>
-        <div className="text-slate-400">{total?.toFixed(2)}</div>
+        <div className="text-red-500">{Number(price).toFixed(2)}</div>
+        <div className="text-slate-300">{Number(quantity).toFixed(4)}</div>
+        <div className="text-slate-500">{total.toFixed(4)}</div>
       </div>
     </div>
   );
