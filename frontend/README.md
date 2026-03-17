@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Frontend UI
 
-## Getting Started
+The `frontend` is a fully interactive, real-time React application serving as the visualization layer for users of the Exchange.
 
-First, run the development server:
+## Responsibilities
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Live Depth Processing:** The UI establishes a fast WebSocket connection (`ws://localhost:8080`) pulling `depth@TATA_INR` diffs as fast as the Go engine can produce them, aggregating them smoothly into Bid and Ask visual tables.
+2. **Charting:** Embeds TradingView's `lightweight-charts` to stream live candlestick updates.
+3. **Decimal Scaling Normalizer:** The Exchange backend outputs pure scaled integers (`1001000000` instead of `1001.0`). The `frontend` automatically intercepts these on both REST and WebSocket payloads and formats them cleanly (e.g. `.toFixed(4)`) for human consumption.
+4. **Auth UX:** Coordinates session storage (JWT) against the `api` Server to validate user access and order history.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
+- Next.js (App Router)
+- React
+- Tailwind CSS
+- `lightweight-charts`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup & Running Locally
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the React UI server (Runs on port `3000`):
+   ```bash
+   npm run dev
+   ```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Environment Variables
+- `NEXT_PUBLIC_API_URL`: Path to the local API server (defaults to `http://localhost:3006`)
+- `NEXT_PUBLIC_WS_URL`: Path to the local internal Node WebSocket broadcasting server (defaults to `ws://localhost:8080`)
+- `NEXT_PUBLIC_DECIMAL_PRECISION`: The shared scalar multiplier across all microservices (defaults to `6` to match backend 1e6 assumptions).
