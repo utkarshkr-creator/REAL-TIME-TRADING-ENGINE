@@ -132,7 +132,7 @@ function TickerD({ market }: { market: string }) {
     <div className="flex h-[60px] shrink-0 space-x-4">
       <div className="flex flex-row relative ml-2 -mr-4">
         <img
-          alt="SOL Logo"
+          alt="Base Asset Logo"
           loading="lazy"
           decoding="async"
           data-nimg="1"

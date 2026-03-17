@@ -85,7 +85,7 @@ services:
 
   engine:
     build:
-      context: ./exchangeManger
+      context: ./exchangeManager
       dockerfile: Dockerfile
     container_name: engine
     depends_on:

@@ -29,9 +29,7 @@ for (const u of USER_IDS) inventory[u] = 0; // positive = long TATA, negative = 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function randomUser(): string {
-  return USER_IDS[Math.floor(Math.random() * USER_IDS.length)];
-}
+// User selection is now done per worker
 
 /** Round a human price to 5 decimal places (max allowed by API) */
 function fmtPrice(p: number): string {
@@ -132,11 +130,8 @@ async function placeOrder(
 // ---------------------------------------------------------------------------
 // Main market-making cycle
 // ---------------------------------------------------------------------------
-async function runCycle() {
+async function runCycle(userId: string) {
   const mid = await getMidPrice();
-
-  // Randomly pick one user to manage per cycle
-  const userId = randomUser();
   const openOrders = await getOpenOrders(userId);
   const openBids = openOrders.filter((o) => o.side === "buy");
   const openAsks = openOrders.filter((o) => o.side === "sell");
@@ -179,7 +174,7 @@ async function runCycle() {
     const levelBps = BASE_SPREAD_BPS + LEVEL_STEP_BPS * i - invSkewBps;
     const bidPrice = mid * (1 - levelBps / 10000);
     const qty = BASE_QTY + QTY_STEP * i;
-    placePromises.push(placeOrder("buy", bidPrice, qty, randomUser()));
+    placePromises.push(placeOrder("buy", bidPrice, qty, userId));
   }
 
   // Tiered ask ladder: place levels at increasing distance above mid
@@ -187,7 +182,7 @@ async function runCycle() {
     const levelBps = BASE_SPREAD_BPS + LEVEL_STEP_BPS * i + invSkewBps;
     const askPrice = mid * (1 + levelBps / 10000);
     const qty = BASE_QTY + QTY_STEP * i;
-    placePromises.push(placeOrder("sell", askPrice, qty, randomUser()));
+    placePromises.push(placeOrder("sell", askPrice, qty, userId));
   }
 
   // Add random taking/crossing orders to simulate active trading
@@ -201,9 +196,9 @@ async function runCycle() {
       : mid * (1 - (BASE_SPREAD_BPS + 20) / 10000);
 
     const randomQty = BASE_QTY + (Math.random() * BASE_QTY * 2);
-    placePromises.push(placeOrder(takerSide, aggressivePrice, randomQty, randomUser()));
+    placePromises.push(placeOrder(takerSide, aggressivePrice, randomQty, userId));
 
-    console.log(`[MM] Extraneous random simulation TAKER order: ${takerSide === "buy" ? "BUY" : "SELL"} ${randomQty.toFixed(5)} @ ~${aggressivePrice.toFixed(2)}`);
+    console.log(`[MM] [u${userId}] Extraneous random simulation TAKER order: ${takerSide === "buy" ? "BUY" : "SELL"} ${randomQty.toFixed(5)} @ ~${aggressivePrice.toFixed(2)}`);
   }
 
   const results = await Promise.all(placePromises);
@@ -219,13 +214,17 @@ async function runCycle() {
 // ---------------------------------------------------------------------------
 console.log(`[MM] Market Maker started | market=${MARKET} mid=~${FALLBACK_MID} precision=1e${DECIMAL_PRECISION}`);
 
-async function loop() {
+async function loop(userId: string) {
   try {
-    await runCycle();
+    await runCycle(userId);
   } catch (e: any) {
-    console.error("[MM] cycle error:", e.message);
+    console.error(`[MM] [u${userId}] cycle error:`, e.message);
   }
-  setTimeout(loop, INTERVAL_MS);
+  setTimeout(() => loop(userId), INTERVAL_MS);
 }
 
-loop();
+// Start a worker for each user in USER_IDS
+USER_IDS.forEach((userId, index) => {
+  // Stagger startups to avoid API spikes
+  setTimeout(() => loop(userId), index * (INTERVAL_MS / USER_IDS.length));
+});

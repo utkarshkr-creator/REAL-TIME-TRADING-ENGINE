@@ -39,9 +39,7 @@ for (const u of USER_IDS)
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function randomUser() {
-    return USER_IDS[Math.floor(Math.random() * USER_IDS.length)];
-}
+// User selection is now done per worker
 /** Round a human price to 5 decimal places (max allowed by API) */
 function fmtPrice(p) {
     return parseFloat(p.toFixed(5)).toString();
@@ -139,12 +137,10 @@ function placeOrder(side, humanPrice, humanQty, userId) {
 // ---------------------------------------------------------------------------
 // Main market-making cycle
 // ---------------------------------------------------------------------------
-function runCycle() {
+function runCycle(userId) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b;
         const mid = yield getMidPrice();
-        // Randomly pick one user to manage per cycle
-        const userId = randomUser();
         const openOrders = yield getOpenOrders(userId);
         const openBids = openOrders.filter((o) => o.side === "buy");
         const openAsks = openOrders.filter((o) => o.side === "sell");
@@ -183,14 +179,14 @@ function runCycle() {
             const levelBps = BASE_SPREAD_BPS + LEVEL_STEP_BPS * i - invSkewBps;
             const bidPrice = mid * (1 - levelBps / 10000);
             const qty = BASE_QTY + QTY_STEP * i;
-            placePromises.push(placeOrder("buy", bidPrice, qty, randomUser()));
+            placePromises.push(placeOrder("buy", bidPrice, qty, userId));
         }
         // Tiered ask ladder: place levels at increasing distance above mid
         for (let i = 0; i < asksToAdd; i++) {
             const levelBps = BASE_SPREAD_BPS + LEVEL_STEP_BPS * i + invSkewBps;
             const askPrice = mid * (1 + levelBps / 10000);
             const qty = BASE_QTY + QTY_STEP * i;
-            placePromises.push(placeOrder("sell", askPrice, qty, randomUser()));
+            placePromises.push(placeOrder("sell", askPrice, qty, userId));
         }
         // Add random taking/crossing orders to simulate active trading
         // Randomly fire a taker order (100% chance per cycle for testing)
@@ -202,8 +198,8 @@ function runCycle() {
                 ? mid * (1 + (BASE_SPREAD_BPS + 20) / 10000)
                 : mid * (1 - (BASE_SPREAD_BPS + 20) / 10000);
             const randomQty = BASE_QTY + (Math.random() * BASE_QTY * 2);
-            placePromises.push(placeOrder(takerSide, aggressivePrice, randomQty, randomUser()));
-            console.log(`[MM] Extraneous random simulation TAKER order: ${takerSide === "buy" ? "BUY" : "SELL"} ${randomQty.toFixed(5)} @ ~${aggressivePrice.toFixed(2)}`);
+            placePromises.push(placeOrder(takerSide, aggressivePrice, randomQty, userId));
+            console.log(`[MM] [u${userId}] Extraneous random simulation TAKER order: ${takerSide === "buy" ? "BUY" : "SELL"} ${randomQty.toFixed(5)} @ ~${aggressivePrice.toFixed(2)}`);
         }
         const results = yield Promise.all(placePromises);
         const placed = results.filter(Boolean).length;
@@ -214,15 +210,19 @@ function runCycle() {
 // Entry point
 // ---------------------------------------------------------------------------
 console.log(`[MM] Market Maker started | market=${MARKET} mid=~${FALLBACK_MID} precision=1e${DECIMAL_PRECISION}`);
-function loop() {
+function loop(userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield runCycle();
+            yield runCycle(userId);
         }
         catch (e) {
-            console.error("[MM] cycle error:", e.message);
+            console.error(`[MM] [u${userId}] cycle error:`, e.message);
         }
-        setTimeout(loop, INTERVAL_MS);
+        setTimeout(() => loop(userId), INTERVAL_MS);
     });
 }
-loop();
+// Start a worker for each user in USER_IDS
+USER_IDS.forEach((userId, index) => {
+    // Stagger startups to avoid API spikes
+    setTimeout(() => loop(userId), index * (INTERVAL_MS / USER_IDS.length));
+});
