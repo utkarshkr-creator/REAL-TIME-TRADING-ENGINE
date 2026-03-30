@@ -23,6 +23,10 @@ app.use("/api/v1/wallet", walletRouter);
 app.use("/api/v1/account", accountRouter);
 
 
-app.listen(3006, () => {
-  console.log("Server is listing of port 3006");
+if (!process.env.PORT) {
+  throw new Error('PORT environment variable is required');
+}
+const port = process.env.PORT;
+app.listen(port, () => {
+  console.log(`Server is listening on port ${port}`);
 })

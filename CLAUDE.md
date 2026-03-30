@@ -81,3 +81,6 @@ npm run dev
 ```
 
 The frontend will be available at `http://localhost:3000`.
+
+## Agent Rules
+- **Git Operations:** The AI assistant MUST NOT run any `git` commands (especially `git commit` or `git push`) automatically unless explicitly told to do so by the user. Code changes should be implemented locally, and version control is left entirely to the user.

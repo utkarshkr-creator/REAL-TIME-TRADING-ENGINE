@@ -1,4 +1,20 @@
 import axios from "axios";
+<<<<<<< Updated upstream
+=======
+import http from 'http';
+
+// Dummy HTTP server for Render health checks
+if (!process.env.PORT) {
+  throw new Error('PORT environment variable is required');
+}
+const port = process.env.PORT;
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('MM Service is healthy');
+}).listen(port, () => {
+  console.log(`Health check server listening on port ${port}`);
+});
+>>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Config
