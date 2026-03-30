@@ -5,4 +5,4 @@ RUN npm install
 COPY . .
 RUN npm install -g typescript
 RUN npm run build
-CMD ["sh", "-c", "node dist/seed-db.js && node dist/index.js"]
+CMD ["npm", "start"]

@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc -b",
-    "dev": "npm run build && node dist/index.js",
+    "start": "node dist/seed-db.js && node dist/index.js",
+    "dev": "npm run build && npm run start",
     "seed:db": "npm run build && node dist/seed-db.js",
     "referesh:views": "npm run build && node dist/cronJob.js"
   },
