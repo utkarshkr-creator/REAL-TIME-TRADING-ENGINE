@@ -27,6 +27,9 @@ if (!process.env.PORT) {
   throw new Error('PORT environment variable is required');
 }
 const port = process.env.PORT;
+if (!port) {
+  throw new Error('PORT environment variable is required');
+}
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
 })

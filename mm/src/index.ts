@@ -1,6 +1,4 @@
 import axios from "axios";
-<<<<<<< Updated upstream
-=======
 import http from 'http';
 
 // Dummy HTTP server for Render health checks
@@ -14,7 +12,6 @@ http.createServer((req, res) => {
 }).listen(port, () => {
   console.log(`Health check server listening on port ${port}`);
 });
->>>>>>> Stashed changes
 
 // ---------------------------------------------------------------------------
 // Config
