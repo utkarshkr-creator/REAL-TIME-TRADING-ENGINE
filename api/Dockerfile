@@ -1,10 +1,10 @@
 FROM node:20
 WORKDIR /app
-COPY api/package*.json ./
+COPY ./package*.json ./
 RUN npm install
-COPY api/prisma ./prisma/
+COPY ./prisma ./prisma/
 RUN npx prisma generate
-COPY api/ .
+COPY . .
 RUN npm install -g typescript
 RUN npx tsc -b
 EXPOSE 3006
