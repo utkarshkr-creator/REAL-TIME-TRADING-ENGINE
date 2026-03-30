@@ -2,7 +2,7 @@ FROM node:20
 WORKDIR /app
 COPY api/package*.json ./
 RUN npm install
-COPY db_processor/src/prisma ./prisma/
+COPY api/prisma ./prisma/
 RUN npx prisma generate
 COPY api/ .
 RUN npm install -g typescript
