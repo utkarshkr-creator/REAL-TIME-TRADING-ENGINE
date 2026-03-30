@@ -8,18 +8,36 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const pg_1 = require("pg");
 const redis_1 = require("redis");
 require("./cronJob");
+const http_1 = __importDefault(require("http"));
+// Dummy HTTP server for Render health checks
+const port = process.env.PORT || 8080;
+http_1.default.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('DB Service is healthy');
+}).listen(port, () => {
+    console.log(`Health check server listening on port ${port}`);
+});
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is required');
+}
 const pgClient = new pg_1.Client({
-    connectionString: process.env.DATABASE_URL || 'postgres://your_user:your_password@localhost:5432/my_database',
+    connectionString: process.env.DATABASE_URL,
 });
 pgClient.connect();
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
+        if (!process.env.REDIS_URL) {
+            throw new Error('REDIS_URL environment variable is required');
+        }
         const redisClient = (0, redis_1.createClient)({
-            url: process.env.REDIS_URL || 'redis://localhost:6379',
+            url: process.env.REDIS_URL,
         });
         yield redisClient.connect();
         console.log("connected to redis");

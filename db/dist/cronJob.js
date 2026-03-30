@@ -10,12 +10,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const pg_1 = require("pg");
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is required');
+}
 const client = new pg_1.Client({
-    user: 'your_user',
-    host: process.env.DB_HOST || 'localhost',
-    database: 'my_database',
-    password: 'your_password',
-    port: 5432,
+    connectionString: process.env.DATABASE_URL,
 });
 client.connect();
 function refreshViews() {

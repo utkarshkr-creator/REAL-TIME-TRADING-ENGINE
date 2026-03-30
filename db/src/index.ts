@@ -2,6 +2,16 @@ import { Client } from 'pg';
 import { createClient } from 'redis';
 import { DbMessage } from './types';
 import './cronJob';
+import http from 'http';
+
+// Dummy HTTP server for Render health checks
+const port = process.env.PORT || 8080;
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('DB Service is healthy');
+}).listen(port, () => {
+  console.log(`Health check server listening on port ${port}`);
+});
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');

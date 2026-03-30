@@ -1,4 +1,14 @@
 import axios from "axios";
+import http from 'http';
+
+// Dummy HTTP server for Render health checks
+const port = process.env.PORT || 8080;
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('MM Service is healthy');
+}).listen(port, () => {
+  console.log(`Health check server listening on port ${port}`);
+});
 
 // ---------------------------------------------------------------------------
 // Config

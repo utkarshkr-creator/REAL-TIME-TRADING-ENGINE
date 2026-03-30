@@ -9,28 +9,20 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 const { Client } = require('pg');
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is required');
+}
 const client = new Client({
-    user: 'your_user',
-    host: process.env.DB_HOST || 'localhost',
-    database: 'my_database',
-    password: 'your_password',
-    port: 5432,
+    connectionString: process.env.DATABASE_URL,
 });
 function initializeDB() {
     return __awaiter(this, void 0, void 0, function* () {
         yield client.connect();
-        // Create extension
-        yield client.query(`
-    CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
-  `);
-        // Drop table if exists
-        yield client.query(`
-    DROP TABLE IF EXISTS "tata_prices" CASCADE;
-    DROP TABLE IF EXISTS "tata_orders" CASCADE;
-  `);
+        // Removed timescaledb extension requirement
+        // Removed DROP TABLE to make this safe to run on startup
         // Create tata_prices table
         yield client.query(`
-    CREATE TABLE "tata_prices"(
+    CREATE TABLE IF NOT EXISTS "tata_prices"(
         time            TIMESTAMP WITH TIME ZONE NOT NULL,
         price           DOUBLE PRECISION,
         volume          DOUBLE PRECISION,
@@ -41,7 +33,7 @@ function initializeDB() {
   `);
         // Create tata_orders table
         yield client.query(`
-    CREATE TABLE "tata_orders"(
+    CREATE TABLE IF NOT EXISTS "tata_orders"(
         order_id      VARCHAR PRIMARY KEY,
         user_id       VARCHAR NOT NULL,
         market        VARCHAR NOT NULL,
@@ -54,19 +46,19 @@ function initializeDB() {
         updated_at    TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `);
-        // Convert tata_prices to a hypertable
+        // Create standard index on time instead of hypertable
         yield client.query(`
-    SELECT create_hypertable('tata_prices', 'time');
+    CREATE INDEX IF NOT EXISTS "idx_tata_prices_time" ON "tata_prices" (time);
   `);
         // Create materialized views for 1 minute, 1 hour, and 1 week intervals
         yield client.query(`
     CREATE MATERIALIZED VIEW IF NOT EXISTS klines_1m AS
     SELECT
-        time_bucket('1 minute', time) AS bucket,
-        first(price, time) AS open,
+        date_trunc('minute', time) AS bucket,
+        (array_agg(price ORDER BY time ASC))[1] AS open,
         max(price) AS high,
         min(price) AS low,
-        last(price, time) AS close,
+        (array_agg(price ORDER BY time DESC))[1] AS close,
         sum(volume) AS volume,
         currency_code
     FROM tata_prices
@@ -75,11 +67,11 @@ function initializeDB() {
         yield client.query(`
     CREATE MATERIALIZED VIEW IF NOT EXISTS klines_1h AS
     SELECT
-        time_bucket('1 hour', time) AS bucket,
-        first(price, time) AS open,
+        date_trunc('hour', time) AS bucket,
+        (array_agg(price ORDER BY time ASC))[1] AS open,
         max(price) AS high,
         min(price) AS low,
-        last(price, time) AS close,
+        (array_agg(price ORDER BY time DESC))[1] AS close,
         sum(volume) AS volume,
         currency_code
     FROM tata_prices
@@ -88,11 +80,11 @@ function initializeDB() {
         yield client.query(`
     CREATE MATERIALIZED VIEW IF NOT EXISTS klines_1w AS
     SELECT
-        time_bucket('1 week', time) AS bucket,
-        first(price, time) AS open,
+        date_trunc('week', time) AS bucket,
+        (array_agg(price ORDER BY time ASC))[1] AS open,
         max(price) AS high,
         min(price) AS low,
-        last(price, time) AS close,
+        (array_agg(price ORDER BY time DESC))[1] AS close,
         sum(volume) AS volume,
         currency_code
     FROM tata_prices
