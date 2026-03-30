@@ -34,7 +34,12 @@ func saveSnapshot(engine *Engine) {
 		slog.Error("Failed to marshal snapshot:", "error", err)
 		return
 	}
-	if err := os.WriteFile("/app/data/snapshot.json", data, 0644); err != nil {
+	// Ensure the data directory exists
+	if err := os.MkdirAll("data", 0755); err != nil {
+		slog.Error("Failed to create data directory:", "error", err)
+	}
+
+	if err := os.WriteFile("data/snapshot.json", data, 0644); err != nil {
 		slog.Error("Failed to write snapshot:", "error", err)
 	}
 }
@@ -43,7 +48,7 @@ func NewEngine() (*Engine, error) {
 	var engine *Engine
 
 	if os.Getenv("WITH_SNAPSHOT") == "true" {
-		data, err := os.ReadFile("/app/data/snapshot.json")
+		data, err := os.ReadFile("data/snapshot.json")
 		if err != nil {
 			slog.Error("No snapshot found:", "error", err)
 		} else {
