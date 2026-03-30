@@ -27,23 +27,29 @@ function validatePrecision(val) {
     return true;
 }
 exports.orderRouter.post('/', auth_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { market, price, quantity, side, type = 'limit' } = req.body;
+    const { market, price, triggerPrice, quantity, side, type = 'limit' } = req.body;
     const userId = req.userId; // from authMiddleware
     const priceStr = price ? price.toString() : "0";
+    const triggerPriceStr = triggerPrice ? triggerPrice.toString() : "0";
     const quantityStr = quantity.toString();
-    if (type === 'limit' && (!validatePrecision(priceStr) || !validatePrecision(quantityStr))) {
+    if ((type === 'limit' || type === 'stop_limit') && (!validatePrecision(priceStr) || !validatePrecision(quantityStr))) {
         return res.status(400).send(`Price and quantity can have at most ${MAX_ALLOWED_DECIMALS} decimal places`);
     }
-    else if (type === 'market' && !validatePrecision(quantityStr)) {
+    else if ((type === 'market' || type === 'stop_market') && !validatePrecision(quantityStr)) {
         return res.status(400).send(`Quantity can have at most ${MAX_ALLOWED_DECIMALS} decimal places`);
     }
-    const scaledPrice = type === 'limit' ? Math.round(parseFloat(priceStr) * SCALING_FACTOR).toString() : "0";
+    else if ((type === 'stop_limit' || type === 'stop_market') && !validatePrecision(triggerPriceStr)) {
+        return res.status(400).send(`TriggerPrice can have at most ${MAX_ALLOWED_DECIMALS} decimal places`);
+    }
+    const scaledPrice = (type === 'limit' || type === 'stop_limit') ? Math.round(parseFloat(priceStr) * SCALING_FACTOR).toString() : "0";
+    const scaledTriggerPrice = (type === 'stop_limit' || type === 'stop_market') ? Math.round(parseFloat(triggerPriceStr) * SCALING_FACTOR).toString() : "0";
     const scaledQuantity = Math.round(parseFloat(quantityStr) * SCALING_FACTOR).toString();
     const response = yield RedisManager_1.RedisManager.getInstance().sendAndAwait({
         type: types_1.CREATE_ORDER,
         data: {
             market,
             price: scaledPrice,
+            triggerPrice: scaledTriggerPrice,
             quantity: scaledQuantity,
             side,
             userId,

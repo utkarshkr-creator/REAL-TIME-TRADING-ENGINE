@@ -47,6 +47,16 @@ orderRouter.post('/', authMiddleware, async (req, res) => {
       type
     }
   });
+
+  // If the engine returned ORDER_CANCELLED (e.g. Insufficient Funds), propagate error to client
+  if (response.type === 'ORDER_CANCELLED') {
+    const payload = response.payload as any;
+    // Empty orderId means engine rejected the order before it was even created (balance check)
+    if (!payload?.orderId) {
+      return res.status(402).json({ error: 'Insufficient balance. Please deposit funds before placing orders.' });
+    }
+  }
+
   res.json(response.payload);
 });
 

@@ -573,12 +573,21 @@ func (e *Engine) updateDbOrders(ctx context.Context, order types.Order, executed
 	})
 	rdb.PushMessage(ctx, types.DbMessage{Type: types.ORDER_UPDATE, Data: data})
 
-	// Push each maker (filled) order update.
+	// Push each maker (resting) order update with full metadata so DB can UPSERT.
 	for _, fill := range fills {
+		// Determine the resting order's side: if the taker was a buy, maker was a sell and vice versa
+		makerSide := "sell"
+		if order.Side == types.SideSell {
+			makerSide = "buy"
+		}
 		fdata, _ := json.Marshal(types.OrderUpdateData{
 			OrderId:     fill.MarketOrderId,
-			ExecutedQty: fill.Quantity, // Note: For a maker, real engine tracks total execution. As a compromise, we send the delta or we could retrieve the resting order. Our Db schema handles delta if we pass it, but wait: the DB schema UPSERTS or UPDATES executed_qty directly. Actually, the TS code sent the total resting executedQty. Let's just track the fill delta or ignore partial executed status for makers since we don't have the Resting order here.
-			// Wait, the DB indexer expects the new EXACT execution amount. It's safer to pass market to force the UPSERT to fail if it's missing, triggering a delta update.
+			ExecutedQty: fill.Quantity,
+			Market:      market,
+			Price:       strconv.FormatInt(fill.Price, 10),
+			Quantity:    strconv.FormatInt(fill.Quantity, 10),
+			Side:        makerSide,
+			UserId:      fill.OtherUserId,
 		})
 		rdb.PushMessage(ctx, types.DbMessage{Type: types.ORDER_UPDATE, Data: fdata})
 	}

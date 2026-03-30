@@ -22,7 +22,7 @@ export default function WalletPage() {
 
   const fetchBalances = async () => {
     try {
-      const res = await axios.get("http://localhost:3006/api/v1/wallet/balances");
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/balances`);
       setBalances(res.data.balances || []);
     } catch (err) {
       console.error("Failed to fetch balances:", err);
@@ -50,7 +50,7 @@ export default function WalletPage() {
     setStatus("loading");
     setErrorMsg("");
     try {
-      await axios.post("http://localhost:3006/api/v1/wallet/deposit", {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/wallet/deposit`, {
         currency: "INR", // Hardcoded mock deposit to INR for now
         amount: Number(depositAmount)
       });

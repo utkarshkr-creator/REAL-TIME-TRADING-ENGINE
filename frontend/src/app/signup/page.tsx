@@ -20,12 +20,12 @@ export default function SignUp() {
     
     try {
       // 1. Create the user
-      await axios.post("http://localhost:3006/api/v1/auth/signup", {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/signup`, {
         email,
         password,
       });
       // 2. Automatically log them in after signup
-      const res = await axios.post("http://localhost:3006/api/v1/auth/login", {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`, {
         email,
         password,
       });
@@ -39,7 +39,7 @@ export default function SignUp() {
   };
 
   return (
-    <div className="flex bg-baseBackground min-h-screen items-center justify-center p-4">
+    <div className="flex bg-[#0b0b0b] min-h-screen items-center justify-center p-4 text-white">
       <div className="w-full max-w-md bg-baseBackgroundL2 p-8 rounded-xl border border-baseBorderLight shadow-lg">
         <h2 className="text-2xl font-semibold text-baseTextHighEmphasis mb-6">Create an Account</h2>
         
@@ -57,7 +57,7 @@ export default function SignUp() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              className="bg-baseBackground border border-baseBorderLight rounded-lg p-3 text-baseTextHighEmphasis focus:border-accentBlue focus:outline-none"
+              className="bg-[#0b0b0b] border border-baseBorderLight rounded-lg p-3 text-white caret-white focus:border-accentBlue focus:outline-none [&:-webkit-autofill]:shadow-[0_0_0px_1000px_#0b0b0b_inset] [&:-webkit-autofill]:[color:white]"
               placeholder="name@example.com"
             />
           </div>
@@ -70,7 +70,7 @@ export default function SignUp() {
               onChange={e => setPassword(e.target.value)}
               required
               minLength={6}
-              className="bg-baseBackground border border-baseBorderLight rounded-lg p-3 text-baseTextHighEmphasis focus:border-accentBlue focus:outline-none"
+              className="bg-[#0b0b0b] border border-baseBorderLight rounded-lg p-3 text-white caret-white focus:border-accentBlue focus:outline-none [&:-webkit-autofill]:shadow-[0_0_0px_1000px_#0b0b0b_inset] [&:-webkit-autofill]:[color:white]"
               placeholder="••••••••"
             />
           </div>

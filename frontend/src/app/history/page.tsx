@@ -27,10 +27,10 @@ export default function HistoryPage() {
       setLoading(true);
       try {
         if (activeTab === "orders") {
-          const res = await axios.get("http://localhost:3006/api/v1/account/orders");
+          const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/account/orders`);
           setOrders(res.data || []);
         } else {
-          const res = await axios.get("http://localhost:3006/api/v1/account/trades");
+          const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/account/trades`);
           setTrades(res.data || []);
         }
       } catch (err) {

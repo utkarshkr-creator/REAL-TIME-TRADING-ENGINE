@@ -6,7 +6,7 @@ import { useAuth } from "../utils/AuthContext";
 import { useRouter } from "next/navigation";
 
 const QUOTEASSET = "INR";
-const BASE_URL = "http://localhost:3006";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL as string;
 
 const DECIMAL_PRECISION = parseInt(process.env.NEXT_PUBLIC_DECIMAL_PRECISION || "6", 10);
 const SCALING_FACTOR = Math.pow(10, DECIMAL_PRECISION);

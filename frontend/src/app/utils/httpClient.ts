@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Ticker, Depth, Trade, KLine } from './types'
-const BASE_URL = "http://localhost:3006/api/v1";
+const getBaseUrl = () => `${process.env.NEXT_PUBLIC_API_URL}/api/v1`;
 
 const DECIMAL_PRECISION = parseInt(process.env.NEXT_PUBLIC_DECIMAL_PRECISION || '6', 10);
 const SCALING_FACTOR = Math.pow(10, DECIMAL_PRECISION);
@@ -15,7 +15,7 @@ export async function getTicker(market: string): Promise<Ticker> {
 }
 
 export async function getTickers(): Promise<Ticker[]> {
-  const response = await axios.get(`${BASE_URL}/tickers`);
+  const response = await axios.get(`${getBaseUrl()}/tickers`);
   return response.data.data.map((t: any) => ({
     ...t,
     lastPrice: (Number(t.lastPrice) / SCALING_FACTOR).toString(),
@@ -27,7 +27,7 @@ export async function getTickers(): Promise<Ticker[]> {
 }
 
 export async function getDepth(market: string): Promise<Depth> {
-  const response = await axios.get(`${BASE_URL}/depth?symbol=${market}`);
+  const response = await axios.get(`${getBaseUrl()}/depth?symbol=${market}`);
   return {
     ...response.data,
     bids: response.data.bids?.map(([price, qty]: [string, string]) => [(Number(price) / SCALING_FACTOR).toString(), (Number(qty) / SCALING_FACTOR).toString()]),
@@ -36,7 +36,7 @@ export async function getDepth(market: string): Promise<Depth> {
 }
 
 export async function getTrades(market: string): Promise<Trade[]> {
-  const response = await axios.get(`${BASE_URL}/trades?symbol=${market}`);
+  const response = await axios.get(`${getBaseUrl()}/trades?symbol=${market}`);
   return response.data.map((t: Trade) => ({
     ...t,
     price: (Number(t.price) / SCALING_FACTOR).toString(),
@@ -45,7 +45,7 @@ export async function getTrades(market: string): Promise<Trade[]> {
 }
 
 export async function getKlines(market: string, interval: string, startTime: number, endTime: number): Promise<KLine[]> {
-  const response = await axios.get(`${BASE_URL}/klines?symbol=${market}&interval=${interval}&startTime=${startTime}&endTime=${endTime}`);
+  const response = await axios.get(`${getBaseUrl()}/klines?symbol=${market}&interval=${interval}&startTime=${startTime}&endTime=${endTime}`);
   const data: KLine[] = response.data;
   if (!Array.isArray(data)) return [];
   return data.sort((x, y) => (new Date(x.end || (x as any).bucket).getTime() < new Date(y.end || (y as any).bucket).getTime() ? -1 : 1)).map((k: KLine) => ({
@@ -61,13 +61,13 @@ export async function getKlines(market: string, interval: string, startTime: num
 }
 
 export async function getBalance(userId: string, quoteAsset: string) {
-  const response = await axios.get(`${BASE_URL}/depth/balance?userId=${userId}&quoteAsset=${quoteAsset}`);
+  const response = await axios.get(`${getBaseUrl()}/depth/balance?userId=${userId}&quoteAsset=${quoteAsset}`);
   const data = response.data.userBalance;
   return Number(data);
 }
 
 export async function getPrice(userId: string, quoteAsset: string) {
-  const response = await axios.get(`${BASE_URL}/depth/price?quoteAsset=${quoteAsset}`);
+  const response = await axios.get(`${getBaseUrl()}/depth/price?quoteAsset=${quoteAsset}`);
   const data = response.data.price;
   return Number(data);
 }
