@@ -5,7 +5,10 @@ import './cronJob';
 import http from 'http';
 
 // Dummy HTTP server for Render health checks
-const port = process.env.PORT || 8080;
+if (!process.env.PORT) {
+  throw new Error('PORT environment variable is required');
+}
+const port = process.env.PORT;
 http.createServer((req, res) => {
   res.writeHead(200);
   res.end('DB Service is healthy');
