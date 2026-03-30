@@ -28,11 +28,11 @@ klineRouter.get("/", async (req, res) => {
       break;
     case '1d':
       query = `SELECT 
-          time_bucket('1 day', time) AS bucket,
-          first(price, time) AS open,
+          date_trunc('day', time) AS bucket,
+          (array_agg(price ORDER BY time ASC))[1] AS open,
           max(price) AS high,
           min(price) AS low,
-          last(price, time) AS close,
+          (array_agg(price ORDER BY time DESC))[1] AS close,
           sum(volume) AS volume,
           currency_code
         FROM tata_prices

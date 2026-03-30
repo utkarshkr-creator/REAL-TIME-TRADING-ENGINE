@@ -11,10 +11,7 @@ const client = new Client({
 async function initializeDB() {
   await client.connect();
 
-  // Create extension
-  await client.query(`
-    CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
-  `);
+  // Removed timescaledb extension requirement
 
   // Removed DROP TABLE to make this safe to run on startup
 
@@ -46,20 +43,20 @@ async function initializeDB() {
     );
   `);
 
-  // Convert tata_prices to a hypertable
+  // Create standard index on time instead of hypertable
   await client.query(`
-    SELECT create_hypertable('tata_prices', 'time', if_not_exists => TRUE);
+    CREATE INDEX IF NOT EXISTS "idx_tata_prices_time" ON "tata_prices" (time);
   `);
 
   // Create materialized views for 1 minute, 1 hour, and 1 week intervals
   await client.query(`
     CREATE MATERIALIZED VIEW IF NOT EXISTS klines_1m AS
     SELECT
-        time_bucket('1 minute', time) AS bucket,
-        first(price, time) AS open,
+        date_trunc('minute', time) AS bucket,
+        (array_agg(price ORDER BY time ASC))[1] AS open,
         max(price) AS high,
         min(price) AS low,
-        last(price, time) AS close,
+        (array_agg(price ORDER BY time DESC))[1] AS close,
         sum(volume) AS volume,
         currency_code
     FROM tata_prices
@@ -69,11 +66,11 @@ async function initializeDB() {
   await client.query(`
     CREATE MATERIALIZED VIEW IF NOT EXISTS klines_1h AS
     SELECT
-        time_bucket('1 hour', time) AS bucket,
-        first(price, time) AS open,
+        date_trunc('hour', time) AS bucket,
+        (array_agg(price ORDER BY time ASC))[1] AS open,
         max(price) AS high,
         min(price) AS low,
-        last(price, time) AS close,
+        (array_agg(price ORDER BY time DESC))[1] AS close,
         sum(volume) AS volume,
         currency_code
     FROM tata_prices
@@ -83,11 +80,11 @@ async function initializeDB() {
   await client.query(`
     CREATE MATERIALIZED VIEW IF NOT EXISTS klines_1w AS
     SELECT
-        time_bucket('1 week', time) AS bucket,
-        first(price, time) AS open,
+        date_trunc('week', time) AS bucket,
+        (array_agg(price ORDER BY time ASC))[1] AS open,
         max(price) AS high,
         min(price) AS low,
-        last(price, time) AS close,
+        (array_agg(price ORDER BY time DESC))[1] AS close,
         sum(volume) AS volume,
         currency_code
     FROM tata_prices
