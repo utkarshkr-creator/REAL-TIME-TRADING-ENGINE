@@ -3,8 +3,14 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const BASE_URL = process.env.BASE_URL || "http://localhost:3006";
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "super-secret-key-change-me";
+const BASE_URL = process.env.BASE_URL;
+if (!BASE_URL) {
+    throw new Error("BASE_URL is not defined");
+}
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
+if (!ADMIN_SECRET) {
+    throw new Error("ADMIN_SECRET is not defined");
+}
 const USER_IDS = ["1", "2", "3", "6", "7"];
 const ASSETS = ["INR", "TATA"];
 const AMOUNT = "1000000"; // Human units (will be scaled by API)

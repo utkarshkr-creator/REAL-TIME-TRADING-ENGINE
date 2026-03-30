@@ -48,6 +48,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - DB_HOST=timescaledb
       - DECIMAL_PRECISION=6
+      - PORT=3006
     networks:
       - exchange-network
 

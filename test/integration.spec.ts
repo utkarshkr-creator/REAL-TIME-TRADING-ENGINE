@@ -1,8 +1,14 @@
 import axios from 'axios';
 import WebSocket from 'ws';
 
-const API_URL = 'http://localhost:3006/api/v1';
-const WS_URL = 'ws://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+if (!API_URL) {
+    throw new Error("NEXT_PUBLIC_API_URL is not defined");
+}
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
+if (!WS_URL) {
+    throw new Error("NEXT_PUBLIC_WS_URL is not defined");
+}
 
 const MARKET = 'TATA_INR';
 const USER_1 = '1';
