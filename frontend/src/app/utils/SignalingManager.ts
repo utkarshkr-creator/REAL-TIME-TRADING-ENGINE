@@ -6,14 +6,17 @@ if (!BASE_URL) {
 }
 
 export class SignalingManager {
-  private ws: WebSocket;
+  private ws: WebSocket | null = null;
   private static instance: SignalingManager;
   private bufferedMessages: any[] = [];
   private callbacks: { [key: string]: { callback: (data: any) => void, id: string }[] } = {};
-  private id: number;
+  private id!: number;
   private initialized: boolean = false;
 
   private constructor() {
+    if(!BASE_URL) {
+      throw new Error("BASE_URL is not defined");
+    }
     this.ws = new WebSocket(BASE_URL);
     this.bufferedMessages = [];
     this.id = 1;
