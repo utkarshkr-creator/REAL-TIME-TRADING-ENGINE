@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"exchangeManager/internal/engine"
@@ -50,6 +51,23 @@ func main() {
 	slog.Info("Connected to Redis", "redis_url", redisURL, "service", "redis")
 
 	slog.Info("Exchange Engine started. Listening for messages...", "service", "engine")
+	
+	// Start a dummy HTTP server to satisfy Render's Web Service port binding requirement
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Engine is healthy"))
+		})
+		slog.Info("Starting dummy health check server", "port", port)
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			slog.Error("Health check server failed", "error", err)
+		}
+	}()
+
 	// 3. Infinite loop to consume messages from the API
 	for {
 		// BRPop blocks indefinitely until a message is available in the "messages" list
