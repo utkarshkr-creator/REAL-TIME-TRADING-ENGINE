@@ -29,21 +29,25 @@ func main() {
 	}
 
 	// 2. Initialize Redis Client
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		panic("REDIS_ADDR environment variable is required")
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		panic("REDIS_URL environment variable is required")
 	}
 
-	client := redis.NewClient(&redis.Options{
-		Addr: redisAddr,
-	})
+	opts, err := redis.ParseURL(redisURL)
+	if err != nil {
+		slog.Error("Failed to parse REDIS_URL", "error", err)
+		panic(err)
+	}
+
+	client := redis.NewClient(opts)
 	defer client.Close()
 
 	ctx := context.Background()
 	if err := client.Ping(ctx).Err(); err != nil {
-		slog.Error("Failed to connect to Redis", "addr", redisAddr, "error", err)
+		slog.Error("Failed to connect to Redis", "url", redisURL, "error", err)
 	}
-	slog.Info("Connected to Redis", "redis_addr", redisAddr, "service", "redis")
+	slog.Info("Connected to Redis", "redis_url", redisURL, "service", "redis")
 
 	slog.Info("Exchange Engine started. Listening for messages...", "service", "engine")
 	// 3. Infinite loop to consume messages from the API

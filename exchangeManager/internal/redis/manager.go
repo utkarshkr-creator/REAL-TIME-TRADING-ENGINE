@@ -34,13 +34,17 @@ func NewRedisManager(client *redis.Client) (*RedisManager, error) {
 
 func GetInstance() *RedisManager {
 	once.Do(func() {
-		addr := os.Getenv("REDIS_ADDR")
-		if addr == "" {
-			log.Fatal("REDIS_ADDR environment variable is required")
+		redisURL := os.Getenv("REDIS_URL")
+		if redisURL == "" {
+			log.Fatal("REDIS_URL environment variable is required")
 		}
-		client := redis.NewClient(&redis.Options{
-			Addr: addr,
-		})
+		
+		opts, err := redis.ParseURL(redisURL)
+		if err != nil {
+			log.Fatalf("Failed to parse REDIS_URL: %v", err)
+		}
+
+		client := redis.NewClient(opts)
 		instance = &RedisManager{
 			client:        client,
 			subscriptions: make(map[string]*redis.PubSub),
