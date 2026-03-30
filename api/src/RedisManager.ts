@@ -2,7 +2,10 @@ import { createClient, RedisClientType } from "redis"
 import { MessageToEngine } from "./utils/types/to";
 import { MessageFromOrderbook } from "./utils/types";
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+if (!process.env.REDIS_URL) {
+    throw new Error('REDIS_URL environment variable is required');
+}
+const REDIS_URL = process.env.REDIS_URL;
 
 export class RedisManager {
     private client: RedisClientType;

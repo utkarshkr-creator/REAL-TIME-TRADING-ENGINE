@@ -4,8 +4,12 @@ import { Client } from "pg";
 
 export const accountRouter = Router();
 
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is required');
+}
+
 const pgClient = new Client({
-    connectionString: process.env.DATABASE_URL || "postgres://your_user:your_password@timescaledb:5432/my_database",
+    connectionString: process.env.DATABASE_URL,
 });
 pgClient.connect();
 

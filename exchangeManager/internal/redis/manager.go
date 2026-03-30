@@ -36,7 +36,7 @@ func GetInstance() *RedisManager {
 	once.Do(func() {
 		addr := os.Getenv("REDIS_ADDR")
 		if addr == "" {
-			addr = "localhost:6379"
+			log.Fatal("REDIS_ADDR environment variable is required")
 		}
 		client := redis.NewClient(&redis.Options{
 			Addr: addr,

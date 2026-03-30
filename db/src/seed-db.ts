@@ -1,11 +1,11 @@
 const { Client } = require('pg');
 
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is required');
+}
+
 const client = new Client({
-  user: 'your_user',
-  host: process.env.DB_HOST || 'localhost',
-  database: 'my_database',
-  password: 'your_password',
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
 });
 
 async function initializeDB() {

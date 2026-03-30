@@ -3,14 +3,20 @@ import { createClient } from 'redis';
 import { DbMessage } from './types';
 import './cronJob';
 
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
 const pgClient = new Client({
-  connectionString: process.env.DATABASE_URL || 'postgres://your_user:your_password@localhost:5432/my_database',
+  connectionString: process.env.DATABASE_URL,
 });
 pgClient.connect();
 
 async function main() {
+  if (!process.env.REDIS_URL) {
+    throw new Error('REDIS_URL environment variable is required');
+  }
   const redisClient = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    url: process.env.REDIS_URL,
   });
   await redisClient.connect();
   console.log("connected to redis");

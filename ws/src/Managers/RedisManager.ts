@@ -1,7 +1,10 @@
 import { RedisClientType, createClient } from "redis"
 import { UserManager } from "./UserManager";
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+if (!process.env.REDIS_URL) {
+    throw new Error('REDIS_URL environment variable is required');
+}
+const REDIS_URL = process.env.REDIS_URL;
 
 export class SubscriptionManager {
   private static instance: SubscriptionManager;

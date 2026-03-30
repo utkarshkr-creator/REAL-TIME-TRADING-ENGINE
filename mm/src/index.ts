@@ -3,10 +3,16 @@ import axios from "axios";
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-const BASE_URL = "http://localhost:3006";
+if (!process.env.BASE_URL) {
+    throw new Error('BASE_URL environment variable is required');
+}
+if (!process.env.ADMIN_SECRET) {
+    throw new Error('ADMIN_SECRET environment variable is required');
+}
+const BASE_URL = process.env.BASE_URL;
 const MARKET = "TATA_INR";
 const USER_IDS = ["1", "2", "3", "6", "7"];
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "super-secret-key-change-me";
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 // Precision — must match API's DECIMAL_PRECISION env var
 const DECIMAL_PRECISION = parseInt(process.env.DECIMAL_PRECISION || "6", 10);

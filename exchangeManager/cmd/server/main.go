@@ -31,7 +31,7 @@ func main() {
 	// 2. Initialize Redis Client
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
-		redisAddr = "localhost:6379"
+		panic("REDIS_ADDR environment variable is required")
 	}
 
 	client := redis.NewClient(&redis.Options{

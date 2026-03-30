@@ -1,8 +1,11 @@
 import { Client } from 'pg';
 import { Router } from "express";
 
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is required');
+}
 const pgClient = new Client({
-  connectionString: process.env.DATABASE_URL || 'postgres://your_user:your_password@localhost:5432/my_database',
+  connectionString: process.env.DATABASE_URL,
 });
 pgClient.connect();
 
