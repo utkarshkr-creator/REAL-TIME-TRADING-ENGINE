@@ -16,15 +16,11 @@ async function initializeDB() {
     CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
   `);
 
-  // Drop table if exists
-  await client.query(`
-    DROP TABLE IF EXISTS "tata_prices" CASCADE;
-    DROP TABLE IF EXISTS "tata_orders" CASCADE;
-  `);
+  // Removed DROP TABLE to make this safe to run on startup
 
   // Create tata_prices table
   await client.query(`
-    CREATE TABLE "tata_prices"(
+    CREATE TABLE IF NOT EXISTS "tata_prices"(
         time            TIMESTAMP WITH TIME ZONE NOT NULL,
         price           DOUBLE PRECISION,
         volume          DOUBLE PRECISION,
@@ -36,7 +32,7 @@ async function initializeDB() {
 
   // Create tata_orders table
   await client.query(`
-    CREATE TABLE "tata_orders"(
+    CREATE TABLE IF NOT EXISTS "tata_orders"(
         order_id      VARCHAR PRIMARY KEY,
         user_id       VARCHAR NOT NULL,
         market        VARCHAR NOT NULL,
@@ -52,7 +48,7 @@ async function initializeDB() {
 
   // Convert tata_prices to a hypertable
   await client.query(`
-    SELECT create_hypertable('tata_prices', 'time');
+    SELECT create_hypertable('tata_prices', 'time', if_not_exists => TRUE);
   `);
 
   // Create materialized views for 1 minute, 1 hour, and 1 week intervals
