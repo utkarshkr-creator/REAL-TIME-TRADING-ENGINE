@@ -75,9 +75,10 @@ walletRouter.post("/deposit", authMiddleware, async (req, res) => {
             return userBalance;
         });
 
-        // Send a pub/sub message to the Go engine here 
-        // to immediately update its in-memory state.
-        await RedisManager.getInstance().sendAndAwait({
+        // Fire-and-forget: notify the Go engine to update its in-memory balance.
+        // The engine processes BALANCE_UPDATE but does NOT send a response back,
+        // so we use lPush directly instead of sendAndAwait.
+        RedisManager.getInstance().pushNoReply({
             type: BALANCE_UPDATE,
             data: {
                 userId,

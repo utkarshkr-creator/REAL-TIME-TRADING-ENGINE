@@ -37,6 +37,13 @@ export class RedisManager {
         });
     }
 
+    /** Fire-and-forget: push a message to the engine without waiting for a response.
+     *  Use this for one-way messages like BALANCE_UPDATE that the engine never ACKs. */
+    public pushNoReply(message: MessageToEngine): void {
+        const id = this.getRandomClientId(); // engine still needs a clientId in the envelope
+        this.publisher.lPush("messages", JSON.stringify({ clientId: id, message }));
+    }
+
     private getRandomClientId() {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }

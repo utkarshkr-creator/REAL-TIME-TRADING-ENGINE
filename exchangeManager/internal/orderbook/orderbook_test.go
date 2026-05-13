@@ -10,12 +10,20 @@ import (
 // Helper to create a fresh orderbook
 func newOB() *Orderbook {
 	return &Orderbook{
-		Bids:         []types.Order{},
-		Asks:         []types.Order{},
+		bidLevels:    make(map[int64]*priceLevel),
+		askLevels:    make(map[int64]*priceLevel),
+		bidHeap:      make(bidPriceHeap, 0),
+		askHeap:      make(askPriceHeap, 0),
+		orderPrice:   make(map[string]int64),
+		orderSide:    make(map[string]types.Side),
+		cancelled:    make(map[string]struct{}),
+		StopBids:     []types.Order{},
+		StopAsks:     []types.Order{},
 		BaseAsset:    "TATA",
 		QuoteAsset:   "INR",
 		LastTradeId:  0,
 		CurrentPrice: 0,
+		Tasks:        make(chan func(), 1000),
 	}
 }
 
@@ -33,8 +41,8 @@ func TestEmptyOrderbookNoFills(t *testing.T) {
 		t.Errorf("expected 0 executedQty, got %d", result.ExecutedQty)
 	}
 	// Order should be inserted into bids
-	if len(ob.Bids) != 1 {
-		t.Fatalf("expected 1 bid in book, got %d", len(ob.Bids))
+	if len(ob.GetBids()) != 1 {
+		t.Fatalf("expected 1 bid in book, got %d", len(ob.GetBids()))
 	}
 }
 
@@ -61,12 +69,12 @@ func TestBidMatchesSingleAsk(t *testing.T) {
 		t.Errorf("expected otherUserId=u2, got %s", result.Fills[0].OtherUserId)
 	}
 	// Ask should be removed from book
-	if len(ob.Asks) != 0 {
-		t.Errorf("expected 0 asks after full match, got %d", len(ob.Asks))
+	if len(ob.GetAsks()) != 0 {
+		t.Errorf("expected 0 asks after full match, got %d", len(ob.GetAsks()))
 	}
 	// Fully filled buy should NOT be in book
-	if len(ob.Bids) != 0 {
-		t.Errorf("expected 0 bids (fully filled), got %d", len(ob.Bids))
+	if len(ob.GetBids()) != 0 {
+		t.Errorf("expected 0 bids (fully filled), got %d", len(ob.GetBids()))
 	}
 }
 
@@ -87,15 +95,16 @@ func TestBidPartialFill(t *testing.T) {
 		t.Fatalf("expected 1 fill, got %d", len(result.Fills))
 	}
 	// Ask should be consumed
-	if len(ob.Asks) != 0 {
-		t.Errorf("expected 0 asks, got %d", len(ob.Asks))
+	if len(ob.GetAsks()) != 0 {
+		t.Errorf("expected 0 asks, got %d", len(ob.GetAsks()))
 	}
 	// Remaining buy should be in bids
-	if len(ob.Bids) != 1 {
-		t.Fatalf("expected 1 bid in book, got %d", len(ob.Bids))
+	bids := ob.GetBids()
+	if len(bids) != 1 {
+		t.Fatalf("expected 1 bid in book, got %d", len(bids))
 	}
-	if ob.Bids[0].OrderID != "b1" {
-		t.Errorf("expected bid order b1, got %s", ob.Bids[0].OrderID)
+	if bids[0].OrderID != "b1" {
+		t.Errorf("expected bid order b1, got %s", bids[0].OrderID)
 	}
 }
 
@@ -116,8 +125,8 @@ func TestAskMatchesSingleBid(t *testing.T) {
 		t.Fatalf("expected 1 fill, got %d", len(result.Fills))
 	}
 	// Bid should be removed
-	if len(ob.Bids) != 0 {
-		t.Errorf("expected 0 bids after full match, got %d", len(ob.Bids))
+	if len(ob.GetBids()) != 0 {
+		t.Errorf("expected 0 bids after full match, got %d", len(ob.GetBids()))
 	}
 }
 
@@ -151,15 +160,16 @@ func TestMultipleFills(t *testing.T) {
 		t.Errorf("fill[1] qty expected 4, got %d", result.Fills[1].Quantity)
 	}
 	// s3 at 101 should remain
-	if len(ob.Asks) != 1 {
-		t.Fatalf("expected 1 ask remaining, got %d", len(ob.Asks))
+	asks := ob.GetAsks()
+	if len(asks) != 1 {
+		t.Fatalf("expected 1 ask remaining, got %d", len(asks))
 	}
-	if ob.Asks[0].OrderID != "s3" {
-		t.Errorf("remaining ask should be s3, got %s", ob.Asks[0].OrderID)
+	if asks[0].OrderID != "s3" {
+		t.Errorf("remaining ask should be s3, got %s", asks[0].OrderID)
 	}
 	// Partially filled buy should be in bids
-	if len(ob.Bids) != 1 {
-		t.Fatalf("expected 1 bid in book, got %d", len(ob.Bids))
+	if len(ob.GetBids()) != 1 {
+		t.Fatalf("expected 1 bid in book, got %d", len(ob.GetBids()))
 	}
 }
 
@@ -193,11 +203,11 @@ func TestPriceFilterBid(t *testing.T) {
 	if result.ExecutedQty != 0 {
 		t.Errorf("expected 0 executedQty, got %d", result.ExecutedQty)
 	}
-	if len(ob.Asks) != 1 {
-		t.Errorf("ask should remain, got %d asks", len(ob.Asks))
+	if len(ob.GetAsks()) != 1 {
+		t.Errorf("ask should remain, got %d asks", len(ob.GetAsks()))
 	}
-	if len(ob.Bids) != 1 {
-		t.Errorf("bid should be inserted, got %d bids", len(ob.Bids))
+	if len(ob.GetBids()) != 1 {
+		t.Errorf("bid should be inserted, got %d bids", len(ob.GetBids()))
 	}
 }
 
@@ -214,11 +224,11 @@ func TestPriceFilterAsk(t *testing.T) {
 	if result.ExecutedQty != 0 {
 		t.Errorf("expected 0 executedQty, got %d", result.ExecutedQty)
 	}
-	if len(ob.Bids) != 1 {
-		t.Errorf("bid should remain, got %d bids", len(ob.Bids))
+	if len(ob.GetBids()) != 1 {
+		t.Errorf("bid should remain, got %d bids", len(ob.GetBids()))
 	}
-	if len(ob.Asks) != 1 {
-		t.Errorf("ask should be inserted, got %d asks", len(ob.Asks))
+	if len(ob.GetAsks()) != 1 {
+		t.Errorf("ask should be inserted, got %d asks", len(ob.GetAsks()))
 	}
 }
 
@@ -228,13 +238,14 @@ func TestBidsInsertedDescending(t *testing.T) {
 	ob.AddOrder(types.Order{OrderID: "2", UserID: "u1", Price: 200, Quantity: 1, Side: types.SideBuy})
 	ob.AddOrder(types.Order{OrderID: "3", UserID: "u1", Price: 150, Quantity: 1, Side: types.SideBuy})
 
-	if len(ob.Bids) != 3 {
-		t.Fatalf("expected 3 bids, got %d", len(ob.Bids))
+	bids := ob.GetBids()
+	if len(bids) != 3 {
+		t.Fatalf("expected 3 bids, got %d", len(bids))
 	}
 	// Should be sorted descending: 200, 150, 100
-	if ob.Bids[0].Price != 200 || ob.Bids[1].Price != 150 || ob.Bids[2].Price != 100 {
+	if bids[0].Price != 200 || bids[1].Price != 150 || bids[2].Price != 100 {
 		t.Errorf("bids not sorted descending: %d, %d, %d",
-			ob.Bids[0].Price, ob.Bids[1].Price, ob.Bids[2].Price)
+			bids[0].Price, bids[1].Price, bids[2].Price)
 	}
 }
 
@@ -244,13 +255,14 @@ func TestAsksInsertedAscending(t *testing.T) {
 	ob.AddOrder(types.Order{OrderID: "2", UserID: "u1", Price: 100, Quantity: 1, Side: types.SideSell})
 	ob.AddOrder(types.Order{OrderID: "3", UserID: "u1", Price: 150, Quantity: 1, Side: types.SideSell})
 
-	if len(ob.Asks) != 3 {
-		t.Fatalf("expected 3 asks, got %d", len(ob.Asks))
+	asks := ob.GetAsks()
+	if len(asks) != 3 {
+		t.Fatalf("expected 3 asks, got %d", len(asks))
 	}
 	// Should be sorted ascending: 100, 150, 200
-	if ob.Asks[0].Price != 100 || ob.Asks[1].Price != 150 || ob.Asks[2].Price != 200 {
+	if asks[0].Price != 100 || asks[1].Price != 150 || asks[2].Price != 200 {
 		t.Errorf("asks not sorted ascending: %d, %d, %d",
-			ob.Asks[0].Price, ob.Asks[1].Price, ob.Asks[2].Price)
+			asks[0].Price, asks[1].Price, asks[2].Price)
 	}
 }
 
@@ -425,11 +437,12 @@ func TestCancelBid(t *testing.T) {
 	if price != 100 {
 		t.Errorf("expected cancelled price=100, got %d", price)
 	}
-	if len(ob.Bids) != 1 {
-		t.Fatalf("expected 1 bid remaining, got %d", len(ob.Bids))
+	bids := ob.GetBids()
+	if len(bids) != 1 {
+		t.Fatalf("expected 1 bid remaining, got %d", len(bids))
 	}
-	if ob.Bids[0].OrderID != "b2" {
-		t.Errorf("remaining bid should be b2, got %s", ob.Bids[0].OrderID)
+	if bids[0].OrderID != "b2" {
+		t.Errorf("remaining bid should be b2, got %s", bids[0].OrderID)
 	}
 }
 
@@ -444,8 +457,8 @@ func TestCancelAsk(t *testing.T) {
 	if price != 100 {
 		t.Errorf("expected cancelled price=100, got %d", price)
 	}
-	if len(ob.Asks) != 0 {
-		t.Errorf("expected 0 asks after cancel, got %d", len(ob.Asks))
+	if len(ob.GetAsks()) != 0 {
+		t.Errorf("expected 0 asks after cancel, got %d", len(ob.GetAsks()))
 	}
 }
 

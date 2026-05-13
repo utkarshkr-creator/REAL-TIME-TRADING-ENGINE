@@ -318,10 +318,12 @@ func (e *Engine) createOrder(market, priceStr, triggerPriceStr, quantityStr, sid
 	// a conservative estimation of the best available price from the orderbook.
 	effectivePrice := price
 	if types.OrderType(orderType) == types.OrderTypeMarket {
-		if side == "buy" && len(ob.Asks) > 0 {
-			// For market buys, lock funds at worst-ask price (top ask if sorted ascending)
-			effectivePrice = ob.Asks[0].Price
-		} else if side == "sell" {
+		if side == "buy" {
+			// For market buys, lock funds at the best (lowest) ask price
+			if bestAsk := ob.BestAsk(); bestAsk > 0 {
+				effectivePrice = bestAsk
+			}
+		} else {
 			// For market sells, base asset is what we give away; price doesn't matter for lock
 			effectivePrice = 0
 		}
@@ -397,24 +399,11 @@ func (e *Engine) cancelOrder(ctx context.Context, orderId string, market string)
 	ob.Tasks <- func() {
 		defer close(done)
 
-		// Try to find the order in asks or bids.
-		var order *types.Order
-		for i := range ob.Asks {
-			if ob.Asks[i].OrderID == orderId {
-				order = &ob.Asks[i]
-				break
-			}
-		}
+		// Look up the order via the O(1) orderSide map instead of scanning slices.
+		order, side := ob.FindOrder(orderId)
+		_ = side
 		if order == nil {
-			for i := range ob.Bids {
-				if ob.Bids[i].OrderID == orderId {
-					order = &ob.Bids[i]
-					break
-				}
-			}
-		}
-		if order == nil {
-			slog.Info("No order found:", "OrderID", orderId)
+			slog.Info("cancelOrder: No order found", "OrderID", orderId)
 			return
 		}
 

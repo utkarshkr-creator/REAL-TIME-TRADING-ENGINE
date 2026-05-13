@@ -13,13 +13,32 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = __importDefault(require("axios"));
+const http_1 = __importDefault(require("http"));
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+if (!process.env.PORT) {
+    throw new Error('PORT environment variable is required');
+}
+const port = process.env.PORT;
+http_1.default.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('MM Service is healthy');
+}).listen(port, () => {
+    console.log(`Health check server listening on port ${port}`);
+});
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-const BASE_URL = "http://localhost:3006";
+if (!process.env.BASE_URL) {
+    throw new Error('BASE_URL environment variable is required');
+}
+if (!process.env.ADMIN_SECRET) {
+    throw new Error('ADMIN_SECRET environment variable is required');
+}
+const BASE_URL = process.env.BASE_URL;
 const MARKET = "TATA_INR";
 const USER_IDS = ["1", "2", "3", "6", "7"];
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "super-secret-key-change-me";
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 // Precision — must match API's DECIMAL_PRECISION env var
 const DECIMAL_PRECISION = parseInt(process.env.DECIMAL_PRECISION || "6", 10);
 const SCALING_FACTOR = Math.pow(10, DECIMAL_PRECISION);

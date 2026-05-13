@@ -1,7 +1,7 @@
 import axios from "axios";
 import http from 'http';
-
-// Dummy HTTP server for Render health checks
+import dotenv from "dotenv";
+dotenv.config();
 if (!process.env.PORT) {
   throw new Error('PORT environment variable is required');
 }

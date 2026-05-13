@@ -7,7 +7,10 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:e2e": "API_URL=http://localhost:3006/api/v1 WS_URL=ws://localhost:8080 ts-node --project tsconfig.json test/e2e-benchmark.ts",
+    "bench": "API_URL=http://localhost:3006/api/v1 WS_URL=ws://localhost:8080 BENCH_ORDERS=200 BENCH_CONCURRENCY=10 ts-node --project tsconfig.json test/e2e-benchmark.ts",
+    "bench:light": "API_URL=http://localhost:3006/api/v1 WS_URL=ws://localhost:8080 BENCH_ORDERS=50 BENCH_CONCURRENCY=5 ts-node --project tsconfig.json test/e2e-benchmark.ts"
   },
   "repository": {
     "type": "git",
